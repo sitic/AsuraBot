@@ -1,0 +1,14 @@
+data/setup.py.i
+data/documentation/conf.py.i
+data/CONTRIBUTORS.i
+data/test_six.py.i
+data/documentation/index.rst.i
+data/CHANGES.i
+data/.hgtags.i
+data/README.i
+data/.hgignore.i
+data/six.py.i
+data/tox.ini.i
+data/MANIFEST.in.i
+data/LICENSE.i
+data/documentation/Makefile.i
