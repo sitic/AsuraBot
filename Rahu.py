@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# MIT License
+# (C) sitic, 2013
+
 import pywikibot
 from threading import Thread
 import time
@@ -28,8 +31,8 @@ revIdTextAddon = (u'<noinclude>\n{{Kasten|Diese Zahl ist die Revisions-ID zu'
         u'[[Benutzer:AsuraBot]] aktualisiert.}}</noinclude>')
 
 revIdComment = u'Bot: neue Revisions ID'
-sandboxResetComment = u'[[WP:Bot|Bot]]: Spielwiese gemäht (zurückgesetzt) ([[Benutzer:Sitic/WL#Neugestaltung|Pilotphase]])'
-sandboxTemplateInsertComment = u'[[WP:Bot|Bot]] Vorlage eingefügt' +\
+sandboxResetComment = u'[[WP:Bots|Bot]]: Spielwiese gemäht (zurückgesetzt) ([[Benutzer:Sitic/WL#Neugestaltung|Pilotphase]])'
+sandboxTemplateInsertComment = u'[[WP:Bots|Bot]] Vorlage eingefügt' +\
         u', bitte den Begrüßungskasten nicht entfernen.'
 sandboxTextComment = sandboxResetComment + \
         u', neue Version des [['+ textTitle + '|Standardtextes]]'

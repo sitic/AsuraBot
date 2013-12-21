@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# MIT License
+# (C) sitic, 2013
+
 import pywikibot
 import time
 
