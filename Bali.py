@@ -11,10 +11,17 @@ import locale
 
 adtPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/{dayName}'
 chronPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/Chronologie {year}'
-editComment = u'Bot: heutiger AdT: {adt}{erneut}'
+editComment = u'Bot: heutiger AdT: [[{adt}]]{erneut}'
 templateComment = u'Bot: dieser Artikel ist heute Artikel des Tages'
 verwaltungTitle1 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung'
 verwaltungTitle2 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel'
+
+talkPageErrorMsg = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist'
+        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]]</small>\n\nDer Eintrag:\n*'
+        u'{line}\nenthält das aktuelle Tagesdatum, obwohl der heutige AdT {adt} ist. Der Fehler wurde'
+        u'\'\'nicht\'\' berichtigt, bitte überprüfen. --~~~~')
+talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des heutigen Adt ({date}) */, manuelle'
+        u'Berichtigung notwendig')
 
 class AdtMain():
     def __init__(self):
@@ -101,6 +108,11 @@ class AdtMain():
                     text_line = text_line.rsplit('</small>', 1)[0]
                     text_line += u' + ' + self.adtDate + u'</small> -'
                     line_list[line_count] = text_line
+            elif self.adtDate.strip() in text_line.strip():
+                talkpage = page.toggleTalkPage()
+                talkpage.text += talkPageErrorMsg.format(date=self.adtDate, line=text_line, adt=self.adtTitle)
+                comment = talkPageErrorComment.format(date=self.adtDate)
+                talkpage.save(comment=comment, botlfag=False, minor=False)
 
         if page.text != u'\n'.join(line_list):
             page.text = u'\n'.join(line_list)

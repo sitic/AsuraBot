@@ -1,8 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# MIT License
-# (C) sitic, 2013
-
 import pywikibot
 import time
 
@@ -41,7 +38,9 @@ newMonthComment = {
     'de' : u'[[WP:Bot|Bot]]: Vorbereitung für den nächsten Monat'
 }
 
-yearsPageIntro = (u'<noinclude>{{Kasten|Diese Seite wird in [[Wikipedia:Archiv der Hauptseite]] eingebunden und automatisch von [[Benutzer:AsuraBot]] verwaltet.}}</noinclude>\n')
+yearsPageIntro = (u'<noinclude>{{Kasten|Diese Seite wird in [[Wikipedia:'
+        u'Archiv der Hauptseite]] eingebunden und automatisch von [[Benutzer:'
+        u'AsuraBot]] verwaltet.}}</noinclude>\n')
 
 class SnapMain():
     def __init__(self):

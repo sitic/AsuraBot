@@ -11,7 +11,7 @@ import locale
 
 discPageTitle = u'Wikipedia Diskussion:Hauptseite/Artikel des Tages/Vorschläge'
 erledigtTemplate = u'{{Erledigt|1=&nbsp;Gestriger AdT-Abschnitt, Baustein wurde [[WP:Bot|automatisch]] gesetzt. ~~~~}}\n\n'
-erledigtComment = u'Bot: /* {section} */ {andere}als erledigt markiert'
+erledigtComment = u'Bot: /* {section} */{andere} als erledigt markiert'
 
 class AdtMain():
     def __init__(self):
@@ -61,7 +61,7 @@ class AdtMain():
             comment = erledigtComment.format(section=modsections[0],\
                     andere=u'')
         elif len(modsections) > 1:
-            andere = u'sowie'
+            andere = u' sowie'
             for i in range(1,len(modsections)):
                 code = mwparserfromhell.parse(modsections[i])
                 section = code.strip_code(normalize=True, collapse=True)

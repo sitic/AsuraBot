@@ -32,8 +32,8 @@ revIdTextAddon = (u'<noinclude>\n{{Kasten|Diese Zahl ist die Revisions-ID zu'
 
 revIdComment = u'Bot: neue Revisions ID'
 sandboxResetComment = u'[[WP:Bots|Bot]]: Spielwiese gemäht (zurückgesetzt) ([[Benutzer:Sitic/WL#Neugestaltung|Pilotphase]])'
-sandboxTemplateInsertComment = u'[[WP:Bots|Bot]] Vorlage eingefügt' +\
-        u', bitte den Begrüßungskasten nicht entfernen.'
+sandboxTemplateInsertComment = u'[[WP:Bots|Bot]]: Begrüßungskasten am Einfang eingefügt' +\
+        u', bitte erst nach dieser Zeile schreiben.'
 sandboxTextComment = sandboxResetComment + \
         u', neue Version des [['+ textTitle + '|Standardtextes]]'
 sandboxDeletedComment = (u'Bot: Spielwiese wurde gelöscht, ich erstelle neue '
@@ -170,7 +170,8 @@ class IrcHandler:
   def reset_sandbox(self, comment=sandboxResetComment, botflag=True):
     """reset sandbox to default text, clear reset timers"""
 
-    pywikibot.output(u'\03{lightyellow}Reseting Sandbox ...\03{default}')
+    pywikibot.output(u'\03{lightyellow}' + time.strftime(timeformat) +\
+		    u'Reseting Sandbox ...\03{default}')
     try:
         _ = self.sandboxPage.get(force=True, get_redirect=True)
         self.sandboxPage.text = sandboxDefault
