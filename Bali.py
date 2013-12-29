@@ -99,7 +99,7 @@ class AdtMain():
                     self.adtErneut = False
 
                     text_line = text_line.replace(u'\'\'\'', u'')
-                    text_line = text_line[:-1] + u'<small>' + self.adtDate +\
+                    text_line = text_line.rsplit(u']]', 1)[0] + u']] <small>' + self.adtDate +\
                             u'</small> -'
                     line_list[line_count] = text_line
                 else:
