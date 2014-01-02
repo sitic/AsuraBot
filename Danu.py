@@ -8,16 +8,15 @@ mainPageTitle = {
     'en' : u'Main Page',
     'de' : u'Wikipedia:Hauptseite'
 }
-#will be added at the end of the snapshoted page
-archivePageOutro = {
+#will be added at the top of the snapshoted page
+archivePageIntro = {
     'en' : u'',
-    'de' : u'\n[[Kategorie:Wikipedia:Hauptseite Archiv]]'
+    'de' : u'{{{{Wikipedia:Hauptseite/Archiv/Vorlage|Tag={day}|Monat={month}|Jahr={year}}}}}\n'
 }
 #where to put the snapshoted page
 archiveTitlePrefix = {
     'en' : u'Wikipedia:Main Page history/',
-#    'de' : u'Wikipedia:Hauptseite/Archiv/'
-    'de' : u'Benutzer:Sitic/'
+    'de' : u'Wikipedia:Hauptseite/Archiv/'
 }
 #script will generate pages archiveTitlePrefix + localize(dateformat)
 dateformat = {
@@ -27,7 +26,7 @@ dateformat = {
 #where to update the template
 templateTitle = {
     'en' : u'Template:Main Page history',
-    'de' : u'Wikipedia:Hauptseite/Archiv/Vorlage'
+    'de' : u'Wikipedia:Hauptseite/Archiv'
 }
 archiveComment = {
     'en' : u'Bot: creating snapshot of the current [[Main Page]]',
@@ -48,14 +47,15 @@ class SnapMain():
         self.site.login()
 
         self.day = time.localtime().tm_mday
+	self.month = time.localtime().tm_mon
         self.monthName = pywikibot.date.monthName(self.site.language(),
-                time.localtime().tm_mon)
-        if time.localtime().tm_mon == 12: # end of the year?
+                self.month)
+        if self.month == 12: # end of the year?
             self.nextmonthName = pywikibot.date.monthName(self.site.language(),
                     1)
         else:
             self.nextmonthName = pywikibot.date.monthName(self.site.language(),
-                    time.localtime().tm_mon + 1)
+                    self.month + 1)
             
         self.year = time.localtime().tm_year
         self.nextyear = time.localtime().tm_year + 1
@@ -66,9 +66,6 @@ class SnapMain():
                 time.localtime().tm_mon)
         if time.localtime().tm_mday == self.maxDays: #end of the month?
             self.new_month()
-
-        ##debug
-        #self.new_month()
 
     def format_date(self, day, monthName, year):
         """
@@ -96,10 +93,13 @@ class SnapMain():
                 fallback=False)
         l_archiveTitlePrefix = pywikibot.translate(self.site,
                 archiveTitlePrefix, fallback=False)
-        l_archivePageOutro   = pywikibot.translate(self.site, archivePageOutro,
+        l_archivePageIntro   = pywikibot.translate(self.site, archivePageIntro,
                 fallback=False)
         l_archiveComment     = pywikibot.translate(self.site, archiveComment,
                 fallback=False)
+
+	l_archivePageIntro = l_archivePageIntro.format(day=time.strftime('%d'),
+			month=time.strftime('%m'), year=self.year)
 
         mainPage = pywikibot.Page(self.site, l_mainPageTitle)
         date = self.format_date(self.day, self.monthName, self.year)
@@ -107,10 +107,9 @@ class SnapMain():
 
         archivePage.text = pywikibot.removeLanguageLinks(mainPage.expand_text())
         archivePage.text = pywikibot.removeCategoryLinks(archivePage.text)
-        archivePage.text += l_archivePageOutro
+        archivePage.text = l_archivePageIntro + archivePage.text
 
-        print archivePage.text
-        #archivePage.save(comment=l_archiveComment, botflag=False, minor=False)
+        archivePage.save(comment=l_archiveComment, botflag=False, minor=False)
 
     def new_month(self):
         pywikibot.output(u'new month, updating template')
