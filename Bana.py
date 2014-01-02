@@ -24,7 +24,7 @@ class AdtMain():
         self.year = time.localtime().tm_year
         self.adtDate = time.strftime('%d.%m.%Y') #31.12.2013
         self.snapDate = time.strftime('%d. %B %Y') #31. Dezember 2013
-        pywikibot.output(u'init complete: ' + time.strftime('%d. %B %Y, %H:%M:%S'))
+        pywikibot.output(u'\n\ninit complete: ' + time.strftime('%d. %B %Y, %H:%M:%S'))
 
         self.adt_disc()
 
@@ -58,17 +58,22 @@ class AdtMain():
         pywikibot.output(u'WD:AdT: Abschnitt(e) ' + unicode(modsections) +\
                 u' als erledigt markiert')
         if len(modsections) == 1:
-            comment = erledigtComment.format(section=modsections[0],\
+            code = mwparserfromhell.parse(modsections[0])
+            lead_section = code.strip_code(normalize=True, collapse=True)
+            comment = erledigtComment.format(section=lead_section,
                     andere=u'')
         elif len(modsections) > 1:
             andere = u' sowie'
             for i in range(1,len(modsections)):
                 code = mwparserfromhell.parse(modsections[i])
                 section = code.strip_code(normalize=True, collapse=True)
-                andere += u' [[#' + unicode(section) + ']]'
                 if i > 1:
                     andere += u','
-            comment = erledigtComment.format(section=modsections[0],\
+                andere += u' [[#' + unicode(section) + ']]'
+
+            code = mwparserfromhell.parse(modsections[0])
+            lead_section = code.strip_code(normalize=True, collapse=True)
+            comment = erledigtComment.format(section=lead_section,
                     andere=andere)
 
         if len(modsections) != 0:
