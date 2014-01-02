@@ -37,10 +37,6 @@ newMonthComment = {
     'de' : u'[[WP:Bot|Bot]]: Vorbereitung für den nächsten Monat'
 }
 
-yearsPageIntro = (u'<noinclude>{{Kasten|Diese Seite wird in [[Wikipedia:'
-        u'Archiv der Hauptseite]] eingebunden und automatisch von [[Benutzer:'
-        u'AsuraBot]] verwaltet.}}</noinclude>\n')
-
 class SnapMain():
     def __init__(self):
         self.site = pywikibot.Site()
@@ -75,7 +71,7 @@ class SnapMain():
                 fallback=False)
         return l_dateformat.format(day=day, monthName=monthName, year=year)
 
-    def isleapyear(n):
+    def isleapyear(self, n):
         if n % 400 == 0:
             return True
         if n % 100 == 0:
@@ -129,11 +125,15 @@ class SnapMain():
             maxDays = 31 #January
         else:
             #check for leap year, getNumberOfDaysInMonth() does not do that
-            if isleapyear(self.year) and time.localtime().tm_mon == 1:
+            if self.isleapyear(self.year) and time.localtime().tm_mon == 1:
                 maxDays = 29
             else:
                 maxDays = pywikibot.date.getNumberOfDaysInMonth(
                     time.localtime().tm_mon + 1)
+
+	if self.format_date(1, self.nextmonthName, self.year) in templatePage.text:
+		#template page is already up to date
+		return
 
         templatePage.text = templatePage.text[:-1] + u'-\n| ' + self.nextmonthName
 
@@ -143,8 +143,7 @@ class SnapMain():
                     u'|' + i.__str__() + u']]'
 
         templatePage.text += u'\n|}'
-        print templatePage.text
-        #templatePage.save(comment=l_newMonthComment, botflag=False)
+        templatePage.save(comment=l_newMonthComment, botflag=False)
 
 if __name__ == "__main__":
     try:
