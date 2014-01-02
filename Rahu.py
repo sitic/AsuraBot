@@ -272,7 +272,7 @@ class IrcHandler:
   def merlbot_fix(self):
     """fix which allows dewiki:User:MerlBot to continue to reset the sandbox
     """
-    page = pysikibot.Page(self.site, merlBotPage)
+    page = pywikibot.Page(self.site, merlBotPage)
     page.text = sandboxDefault
     page.save(comment=sandboxTextComment, botflag=False, minor=False)
 
