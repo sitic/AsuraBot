@@ -39,6 +39,7 @@ sandboxTextComment = sandboxResetComment + \
 sandboxDeletedComment = (u'Bot: Spielwiese wurde gelöscht, ich erstelle neue '
         u'Versionen und aktulisiere die Vorlage.')
 
+merlBotPage = u'Wikipedia:Spielwiese/Vorlage' #fix for dewiki:User:MerlBot
 timeformat = '%d. %B %Y, %H:%M:%S: '
 
 class IrcHandler: 
@@ -54,6 +55,8 @@ class IrcHandler:
     #reset sandbox to save the default text
     self.reset_sandbox()
     self.sandboxDefaultText = self.sandboxPage.get(force=True)
+
+    self.merlbot_fix() #fix for dewiki:User:MerlBot
 
     self.t_changed = time.time() #time of the last sandbox change
     self.t_reset = time.time()   #last time sandbox was default text
@@ -90,9 +93,11 @@ class IrcHandler:
                   user = user.split('\x03 \x035*\x03', 1)[0]
                   
 		  # add .decode('utf-8', 'replace')?
+                  ##includes fix for dewiki:User:MerlBot
                   if page.decode('utf-8').strip() == sandboxTitle.strip() and \
                           user.decode('utf-8').strip() != \
-                                  pywikibot.Site().username().strip():
+                          pywikibot.Site().username().strip() and \
+                          user.decode('utf-8').strip() != u'Benutzer:MerlBot':
                       #Sandbox changed, check what changed
                       Thread(target=self.sandbox_changed).start()
 
@@ -260,6 +265,16 @@ class IrcHandler:
     revIdTextPage.text = revIdDoku+unicode(revid)+revIdTextAddon
     revIdTextPage.save(comment=revIdComment, botflag=False)
     pywikibot.output(u'\n\03{lightpurple}Text revid updated\03{default}')
+
+    pywikibot.output(u'\n\03{lightpurple}Running MerlBot-fix...\03{default}')
+    self.merlbot_fix()
+
+  def merlbot_fix(self):
+    """fix which allows dewiki:User:MerlBot to continue to reset the sandbox
+    """
+    page = pysikibot.Page(self.site, merlBotPage)
+    page.text = sandboxDefault
+    page.save(comment=sandboxTextComment, botflag=False, minor=False)
 
 class IrcListener(irc.bot.SingleServerIRCBot):
   """Takes care of the IRC backend,
