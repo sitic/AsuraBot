@@ -6,8 +6,16 @@
 import pywikibot
 import mwparserfromhell
 import re
-import time
+import dateutil.parser
+import datetime
 import locale
+import redis
+
+redisServer = 'tools-redis'
+redisPort = 6379
+redisDB = 9
+
+rand_str = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x' #openssl rand -base64 30
 
 adtPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/{dayName}'
 chronPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/Chronologie {year}'
@@ -28,13 +36,17 @@ class AdtMain():
         self.site = pywikibot.Site()
         self.site.login()
 
+        self.red = redis.StrictRedis(host=redisServer, port=redisPort, db=redisDB)
+
         locale.setlocale(locale.LC_ALL, 'de_DE.utf8')
-        self.dayName = time.strftime('%A')
-        self.monthName = time.strftime('%B')
-        self.year = time.localtime().tm_year
-        self.adtDate = time.strftime('%d.%m.%Y') #31.12.2013
-        self.snapDate = time.strftime('%d. %B %Y') #31. Dezember 2013
-        pywikibot.output(u'\n\ninit complete: ' + time.strftime('%d. %B %Y, %H:%M:%S'))
+        self.today = datetime.date.today()
+        self.dayName = self.today.strftime('%A')
+        self.monthName = self.today.strftime('%B')
+        self.year = self.today.year
+        self.adtDate = self.today.strftime('%d.%m.%Y') #31.12.2013
+        self.snapDate = self.today.strftime('%d. %B %Y') #31. Dezember 2013
+        pywikibot.output(u'\n\ninit complete: ' +\
+                        datetime.datetime.now().strftime('%d. %B %Y, %H:%M:%S'))
 
         self.adtErneut = None
         self.adtTitle = None
@@ -54,9 +66,10 @@ class AdtMain():
             if template.name.matches((u'AdT-Vorschlag', u'AdT-Vorschlag\n')):
                 l = re.search(r'\s*(?P<adt>.*)\s*\n?',
                         unicode(template.get(u'LEMMA').value))
-                d = re.search(r'\d{2}\.\d{2}\.\d{4}',
+                d = re.search(r'\d{1,2}\.\d{1,2}\.\d{2,4}',
                         unicode(template.get(u'DATUM').value))
-                if l and d.group() == self.adtDate:
+                if l and dateutil.parser.parse(d.group(),
+                        dayfirst=True).date() == self.today:
                     self.adtTitle = l.group('adt')
                     pywikibot.output(u'Heutiger AdT: ' + self.adtTitle)
                 else:
@@ -179,6 +192,9 @@ class AdtMain():
 
         print adtPage.text ##debug
         #adtPage.save(comment=templateComment, botflag=False, minor=False)
+
+    def cleanup_templates(self):
+        pass
 
 if __name__ == "__main__":
     try:

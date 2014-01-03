@@ -6,25 +6,37 @@
 import pywikibot
 import mwparserfromhell
 import re
-import time
+import dateutil.parser
+import datetime
 import locale
+import redis
 
 discPageTitle = u'Wikipedia Diskussion:Hauptseite/Artikel des Tages/Vorschläge'
 erledigtTemplate = u'{{Erledigt|1=&nbsp;Gestriger AdT-Abschnitt, Baustein wurde [[WP:Bot|automatisch]] gesetzt. ~~~~}}\n\n'
 erledigtComment = u'Bot: /* {section} */{andere} als erledigt markiert'
+
+redisServer = 'tools-redis'
+redisPort = 6379
+redisDB = 9
+
+rand_str = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x' #openssl rand -base64 30
 
 class AdtMain():
     def __init__(self):
         self.site = pywikibot.Site()
         self.site.login()
 
+        self.red = redis.StrictRedis(host=redisServer, port=redisPort, db=redisDB)
+
         locale.setlocale(locale.LC_ALL, 'de_DE.utf8')
-        self.dayName = time.strftime('%A')
-        self.monthName = time.strftime('%B')
-        self.year = time.localtime().tm_year
-        self.adtDate = time.strftime('%d.%m.%Y') #31.12.2013
-        self.snapDate = time.strftime('%d. %B %Y') #31. Dezember 2013
-        pywikibot.output(u'\n\ninit complete: ' + time.strftime('%d. %B %Y, %H:%M:%S'))
+        self.today = datetime.date.today()
+        self.dayName = self.today.strftime('%A')
+        self.monthName = self.today.strftime('%B')
+        self.year = self.today.year
+        self.adtDate = self.today.strftime('%d.%m.%Y') #31.12.2013
+        self.snapDate = self.today.strftime('%d. %B %Y') #31. Dezember 2013
+        pywikibot.output(u'\n\ninit complete: ' +\
+			datetime.datetime.now().strftime('%d. %B %Y, %H:%M:%S'))
 
         self.adt_disc()
 
@@ -49,11 +61,18 @@ class AdtMain():
                 section_count += 1
                 sectionname = s.group('sectionname')
                 pywikibot.output(u'WD:AdT: Abschnitt gefunden: ' + sectionname)
-                d = re.search(r'\d{2}\.\d{2}\.\d{4}\s?:', sectionname)
-                if d and self.adtDate in d.group() and section_count < 5:
-                    header_line = line_count
-                else:
-                    break
+                d = re.search(r'\d{1,2}\.\d{1,2}\.\d{2,4}\s?:', sectionname)
+		if d:
+			date = dateutil.parser.parse(d.group()[:-1], dayfirst=True)
+	                if date.date() <= self.today:
+			        header_line = line_count
+                                adt = re.search(r'\[\[(?P<adt>[^\|\]]*)\|?[^\]]*?\]\]', text_line)
+                                if not adt:
+                                    pywikibot.error(u'Abschnitt archiviert, konnte aber'
+                                            u' nicht den AdT ermitteln!')
+                                self.addto_redis(adt.group('adt'))
+		if section_count > 4:
+			break
 
         pywikibot.output(u'WD:AdT: Abschnitt(e) ' + unicode(modsections) +\
                 u' als erledigt markiert')
@@ -85,6 +104,11 @@ class AdtMain():
             if template.name.matches("Erledigt"):
                 return True
         return False
+
+    def addto_redis(self, title):
+        self.red.sadd(rand_str, title)
+        pywikibot.output(u"Added " + title + u" to redis set " +\
+			rand_str.decode('utf8') + u'\n')
 
 if __name__ == "__main__":
     try:
