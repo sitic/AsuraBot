@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # MIT License
-# (C) sitic, 2013
+# Copyright (C) 2013-2014 sitic
 
 import pywikibot
 import mwparserfromhell
