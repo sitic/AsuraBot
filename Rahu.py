@@ -108,12 +108,12 @@ class IrcHandler:
 		  # Sandbox or related pages were not changed.
 		  # Now check if it is time to reset non-default sandbox
                   elif self.sandbox_is_changed and \
-                          (time.time() - self.t_changed > 600):
+                          (time.time() - self.t_changed > 900):
                       Thread(target=self.reset_sandbox).start()
                       self.sandbox_is_changed = False
 
                   elif self.sandbox_is_changed and \
-		          (time.time() - self.t_reset > 1800):
+		          (time.time() - self.t_reset > 3600):
                       Thread(target=self.reset_sandbox).start()
                       self.sandbox_is_changed = False
      except IndexError:

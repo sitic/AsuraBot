@@ -97,7 +97,7 @@ class AdtMain():
 
         if len(modsections) != 0:
             discPage.text = u''.join(line_list)
-            discPage.save(comment=comment, botflag=False, minor=True)
+            discPage.save(comment=comment, botflag=True, minor=True)
     def __erle_exists(self, line_list):
         code = mwparserfromhell.parse(u''.join(line_list))
         for template in code.filter_templates(recursive=False):

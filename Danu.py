@@ -108,7 +108,7 @@ class SnapMain():
         archivePage.text = pywikibot.removeCategoryLinks(archivePage.text)
         archivePage.text = l_archivePageIntro + archivePage.text
 
-        archivePage.save(comment=l_archiveComment, botflag=False, minor=False)
+        archivePage.save(comment=l_archiveComment, botflag=True, minor=False)
 
     def new_month(self):
         pywikibot.output(u'new month, updating template')
@@ -146,7 +146,7 @@ class SnapMain():
                     u'|' + i.__str__() + u']]'
 
         templatePage.text += u'\n|}'
-        templatePage.save(comment=l_newMonthComment, botflag=False)
+        templatePage.save(comment=l_newMonthComment, botflag=True, minor=False)
 
 if __name__ == "__main__":
     try:

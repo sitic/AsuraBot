@@ -15,7 +15,7 @@ redisServer = 'tools-redis'
 redisPort = 6379
 redisDB = 9
 
-rand_str = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x' #openssl rand -base64 30
+redSetMain = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x' #openssl rand -base64 30
 
 adtPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/{dayName}'
 chronPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/Chronologie {year}'
@@ -24,10 +24,14 @@ templateComment = u'Bot: dieser Artikel ist heute Artikel des Tages'
 verwaltungTitle1 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung'
 verwaltungTitle2 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel'
 
-talkPageErrorMsg = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist'
+talkPageErrorMsgDay = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist'
         u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]]</small>\n\nDer Eintrag:\n*'
         u'{line}\nenthält das aktuelle Tagesdatum, obwohl der heutige AdT {adt} ist. Der Fehler wurde'
         u'\'\'nicht\'\' berichtigt, bitte überprüfen. --~~~~')
+talkPageErrorMsgTime = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist'
+        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]]</small>\n\nDer Eintrag:\n*'
+        u'{line}\ndes heutigen AdT enthält ein Datum, das nicht das heutige ist, aber höchstens zwei Jahre'
+        u'zurückliegt. Der Fehler wurde \'\'nicht\'\' berichtigt, bitte überprüfen (auch die Chronologie. --~~~~')
 talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des heutigen Adt ({date}) */, manuelle'
         u'Berichtigung notwendig')
 
@@ -56,6 +60,7 @@ class AdtMain():
             self.addto_verwaltung()
             self.addto_chron()
             #self.add_template()
+            #self.cleanup_templates()
 
     def get_adt(self):
         title = adtPageTitle.format(dayName=self.dayName)
@@ -87,43 +92,44 @@ class AdtMain():
         page = pywikibot.Page(self.site, pageTitle)
         oldtext = page.text ##debug
         line_list = page.text.splitlines()
+        found = False
 
         line_count = -1
         for text_line in line_list:
             line_count += 1
             adt = re.search(r'\[\[(?P<adt>[^\|\]]*)\|?[^\]]*?\]\]', text_line)
             if adt and adt.group('adt') == self.adtTitle:
-                if self.adtDate.strip() in text_line.strip():
-                    r = re.findall(r'\d{2}\.\d{2}\.\d{4}', text_line)
-                    if len(r) > 1:
-                        self.adtErneut = True
-                    else:
-                        self.adtErneut = False
+                text_line = text_line.replace(u'\'\'\'', u'')
+                text_line = text_line.replace(u'\'\'', u'')
 
-                    text_line = text_line.replace(u'\'\'', u'')
-                    if text_line != line_list[line_count]:
-                        line_list[line_count] = text_line
-                    else:
-                        pywikibot.output(u'Verwaltung: AdT wurde schon in ' + pageTitle +\
-                                u' eingetragen')
-                        return True
-
-                elif u'\'\'\'' in text_line: #neu
+                r = re.findall(r'\d{1,2}\.\d{1,2}\.\d{2,4}', text_line)
+                if r:
+                    self.adtErneut = True
+                    for r_date in r:
+                        date = dateutil.parser.parse(r_date, dayfirst=True).date()
+                        if date == self.today:
+                            self.adtErneut = False
+                            found = True
+                            pywikibot.output(u'Verwaltung: AdT wurde schon in ' + pageTitle +\
+                                    u' eingetragen')
+                            break
+                        elif date + relativedelta(years=2) > self.today:
+                            talkpage = page.toggleTalkPage()
+                            talkpage.text += talkPageErrorMsgTime.format(date=self.adtDate, line=text_line)
+                            comment = talkPageErrorComment.format(date=self.adtDate)
+                            talkpage.save(comment=comment, botlfag=False, minor=False)
+                    if self.adtErneut:
+                        text_line = text_line.rsplit('</small>', 1)[0]
+                        text_line += u' + ' + self.adtDate + u'</small> -'
+                else:
                     self.adtErneut = False
-
-                    text_line = text_line.replace(u'\'\'\'', u'')
                     text_line = text_line.rsplit(u']]', 1)[0] + u']] <small>' + self.adtDate +\
                             u'</small> -'
-                    line_list[line_count] = text_line
-                else:
-                    self.adtErneut = True
 
-                    text_line = text_line.rsplit('</small>', 1)[0]
-                    text_line += u' + ' + self.adtDate + u'</small> -'
-                    line_list[line_count] = text_line
+                line_list[line_count] = text_line
             elif self.adtDate.strip() in text_line.strip():
                 talkpage = page.toggleTalkPage()
-                talkpage.text += talkPageErrorMsg.format(date=self.adtDate, line=text_line, adt=self.adtTitle)
+                talkpage.text += talkPageErrorMsgDay.format(date=self.adtDate, line=text_line, adt=self.adtTitle)
                 comment = talkPageErrorComment.format(date=self.adtDate)
                 talkpage.save(comment=comment, botlfag=False, minor=False)
 
@@ -135,6 +141,8 @@ class AdtMain():
                 comment = editComment.format(adt=self.adtTitle,erneut=u'')
             pywikibot.showDiff(oldtext,page.text) ##debug
             page.save(comment=comment, botflag=False, minor=True)
+            return True
+        elif found:
             return True
         else:
             pywikibot.output(u'Verwaltung: AdT nicht in ' + pageTitle + u' gefunden.')
@@ -181,12 +189,19 @@ class AdtMain():
     def add_template(self):
         adtPage = pywikibot.Page(self.site, self.adtTitle, ns=1)
         code = mwparserfromhell.parse(adtPage.text)
+
+        war_adt_added = False
         for template in code.filter_templates(recursive=False):
+            if template.name.matches("wird AdT"):
+                code.remove(template)
+                self.red.srem(redSetMain, self.adtTitle)
+                pywikibot.output(u'D:AdT: {{wird AdT}} gefunden, entfernt')
             if template.name.matches("war AdT"):
                 pywikibot.output(u'D:AdT: {{war AdT}} gefunden, füge heute hinzu')
                 template.add(str(len(template.params)+1), self.adtDate)
+                war_adt_added = True
 
-        if unicode(code) == adtPage.text:
+        if not war_adt_added:
             template = u'{{war AdT|1=' + self.adtDate + u'}}\n'
             adtPage.text = template + adtPage.text
 
@@ -194,7 +209,28 @@ class AdtMain():
         #adtPage.save(comment=templateComment, botflag=False, minor=False)
 
     def cleanup_templates(self):
-        pass
+        pywikibot.output(u'\nÜberpürfe redis set ' + unicode(redSetMain))
+        while True:
+            title = self.red.spop(redSetMain)
+            if title is None:
+                break
+
+            page = pywikibot.Page(self.site, title, ns=1)
+            code = mwparserfromhell.parse(page.text)
+            for template in code.filter_templates(recursive=False):
+                if template.name.matches("wird AdT"):
+                    param_tag = template.get(u'Tag').value
+                    date = dateutil.parser.parse(param_tag, dayfirst=True).date()
+                    if date <= self.today:
+                        code.remove(template)
+                        pywikibot.output(title + u': {{wird AdT}} gefunden,'
+                                u' entfernt')
+                    else:
+                        pywikibot.output(title + u': {{wird AdT}} gefunden,' 
+                                u' belassen da für ' + unicode(date))
+
+            if unicode(code) != page.text:
+		    pass #page.save()
 
 if __name__ == "__main__":
     try:
