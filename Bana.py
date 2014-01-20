@@ -64,15 +64,15 @@ class AdtMain():
                 d = re.search(r'\d{1,2}\.\d{1,2}\.\d{2,4}\s?:', sectionname)
                 if d:
                         date = dateutil.parser.parse(d.group()[:-1], dayfirst=True)
-                        if date.date() <= self.today:
+                        if date.date() <= self.today and section_count < 5:
                                 header_line = line_count
                                 adt = re.search(r'\[\[(?P<adt>[^\|\]]*)\|?[^\]]*?\]\]', text_line)
                                 if not adt:
-                                    pywikibot.error(u'Abschnitt archiviert, konnte aber'
-                                            u' nicht den AdT ermitteln!')
+                                    adt = re.search(r'\:\s*(?P<adt>[^\[\|\]]*?)\s*==\n', text_line)
+                                    pywikibot.output(u'Rate AdT: ' + adt.group('adt'))
                                 self.addto_redis(adt.group('adt'))
-                if section_count > 4:
-                        break
+                        else:
+                            break
 
         pywikibot.output(u'WD:AdT: Abschnitt(e) ' + unicode(modsections) +\
                 u' als erledigt markiert')

@@ -37,7 +37,7 @@ sandboxTemplateInsertComment = u'[[WP:Bots|Bot]]: Begrüßungskasten am Einfang 
 sandboxTextComment = sandboxResetComment + \
         u', neue Version des [['+ textTitle + '|Standardtextes]]'
 sandboxDeletedComment = (u'Bot: Spielwiese wurde gelöscht, ich erstelle neue '
-        u'Versionen und aktulisiere die Vorlage.')
+        u'Versionen und aktualisiere die Vorlage.')
 
 merlBotPage = u'Wikipedia:Spielwiese/Vorlage' #fix for dewiki:User:MerlBot
 timeformat = '%d. %B %Y, %H:%M:%S: '
@@ -67,7 +67,7 @@ class IrcHandler:
      if found start functions dealing with the change as new thread.
      Check the reset timers"""
      try:
-          message = message.encode('utf-8').strip()
+          message = message.encode('utf-8', 'ignore').strip()
           page = message.split('\x0314[[\x0307', 1)[1] 
           page = page.split('\x0314]]\x034', 1)[0] 
 
@@ -80,7 +80,7 @@ class IrcHandler:
                   page = message.split('\x0310deleted "[[\x0302', 1)[1]
                   page = page.split('\x0310]]"', 1)[0]
 
-                  if page.decode('utf-8').strip() == sandboxTitle.strip():
+                  if page.decode('utf-8', 'ignore').strip() == sandboxTitle.strip():
                       Thread(target=self.sandbox_deleted).start()
 
           else:
@@ -94,14 +94,14 @@ class IrcHandler:
                   
 		  # add .decode('utf-8', 'replace')?
                   ##includes fix for dewiki:User:MerlBot
-                  if page.decode('utf-8').strip() == sandboxTitle.strip() and \
-                          user.decode('utf-8').strip() != \
+                  if page.decode('utf-8', 'ignore').strip() == sandboxTitle.strip() and \
+                          user.decode('utf-8', 'ignore').strip() != \
                           pywikibot.Site().username().strip() and \
-                          user.decode('utf-8').strip() != u'Benutzer:MerlBot':
+                          user.decode('utf-8', 'ignore').strip() != u'Benutzer:MerlBot':
                       #Sandbox changed, check what changed
                       Thread(target=self.sandbox_changed).start()
 
-                  elif page.decode('utf-8').strip() == textTitle.strip():
+                  elif page.decode('utf-8', 'ignore').strip() == textTitle.strip():
                       #Text changed, update sandbox & revid
                       Thread(target=self.text_changed).start()
 
@@ -235,12 +235,12 @@ class IrcHandler:
     #update empty revid
     revIdEmptyPage = pywikibot.Page(self.site, revIdEmptyTitle)
     revIdEmptyPage.text = revIdDoku+unicode(revidempty)+revIdEmptyAddon
-    revIdEmptyPage.save(comment=revIdComment, botflag=False)
+    revIdEmptyPage.save(comment=revIdComment, botflag=True)
 
     #update text revid
     revIdTextPage = pywikibot.Page(self.site, revIdTextTitle)
     revIdTextPage.text = revIdDoku+unicode(revidtext)+revIdTextAddon
-    revIdTextPage.save(comment=revIdComment, botflag=False)
+    revIdTextPage.save(comment=revIdComment, botflag=True)
     
     self.sandbox_is_changed = False
     self.sandbox_is_default = True
@@ -263,7 +263,7 @@ class IrcHandler:
     revid = self.sandboxPage.latestRevision()
     revIdTextPage = pywikibot.Page(self.site, revIdTextTitle)
     revIdTextPage.text = revIdDoku+unicode(revid)+revIdTextAddon
-    revIdTextPage.save(comment=revIdComment, botflag=False)
+    revIdTextPage.save(comment=revIdComment, botflag=True)
     pywikibot.output(u'\n\03{lightpurple}Text revid updated\03{default}')
 
     pywikibot.output(u'\n\03{lightpurple}Running MerlBot-fix...\03{default}')
@@ -274,7 +274,7 @@ class IrcHandler:
     """
     page = pywikibot.Page(self.site, merlBotPage)
     page.text = sandboxDefault
-    page.save(comment=sandboxTextComment, botflag=False, minor=False)
+    page.save(comment=sandboxTextComment, botflag=True, minor=False)
 
 class IrcListener(irc.bot.SingleServerIRCBot):
   """Takes care of the IRC backend,
@@ -284,6 +284,7 @@ class IrcListener(irc.bot.SingleServerIRCBot):
   def __init__(self):
     irc.bot.SingleServerIRCBot.__init__(self, [("irc.wikimedia.org", 6667)],
             pywikibot.Site().username(), u"aBotBy"+contactUser)
+    irc.client.ServerConnection.buffer_class.errors = 'replace'
     self.channel = u"#"+pywikibot.Site().language()+u"."+pywikibot.Site().family.name
     self.handler = IrcHandler()
 

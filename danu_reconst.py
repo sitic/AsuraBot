@@ -21,7 +21,7 @@ mainPageTitle = {
 #will be added at the top of the snapshoted page
 archivePageIntro = {
     'en' : u'',
-    'de' : u'{{{{Wikipedia:Hauptseite/Archiv/Vorlage|Tag={day}|Monat={month}|Jahr={year}|rekonstruiert=Ja}}}}\n'
+    'de' : u'{{{{Wikipedia:Hauptseite/Archiv/Vorlage|Tag={day}|Monat={month}|Jahr={year}|rekonstruiert=Ja}}}}\n{{{{bots|denyscript=delinker}}}}\n'
 }
 #where to put the snapshoted page
 archiveTitlePrefix = {
@@ -40,7 +40,7 @@ templateTitle = {
 }
 archiveComment = {
     'en' : u'Bot: creating snapshot of the current [[Main Page]]',
-    'de' : u'[[WP:Bot|Bot]]: erstelle Abbild der damaligen [[Wikipedia:Hauptseite|Hauptseite]]'
+    'de' : u'[[WP:Bot|Bot]]: rekonstruiere Abbild der damaligen [[Wikipedia:Hauptseite|Hauptseite]]'
 }
 newMonthComment = {
     'en' : u'Bot: adding links to next month',
@@ -58,8 +58,8 @@ class SnapMain():
         self.commons = self.site.image_repository()
 
         self.localtz = tz.gettz('Europe/Berlin')
-        startdate = datetime(2013,  12, 31, 23, 59, 59, tzinfo=self.localtz)
-        enddate   = datetime(2013,  12, 26, 23, 59, 59, tzinfo=self.localtz)
+        startdate = datetime(2012,  3,  1, 23, 59, 59, tzinfo=self.localtz)
+        enddate   = datetime(2012,  1,  1, 23, 59, 59, tzinfo=self.localtz)
 
         self.reportPage = pywikibot.Page(self.site, redlinksPage)
 
@@ -67,6 +67,11 @@ class SnapMain():
                 fallback=False)
         self.mainPage = pywikibot.Page(self.site, l_mainPageTitle)
         self.mainversions = self.mainPage.getVersionHistory()
+
+        NumTitle = u'Benutzer:SchirmerPower/Artikelanzahl tgl dewp (Hochrechnung)'
+        NumPage = pywikibot.Page(self.site, NumTitle)
+        self.numberofarticles = dict(re.findall(r'(\d{1,2}\.[\D\s]*?\d{4})\t(\d\.\d{3}\.\d{3})',
+            NumPage.text))
 
         day = startdate
         while day != enddate:
@@ -95,7 +100,8 @@ class SnapMain():
 			month=date.strftime('%m'), year=date.strftime('%Y'))
 
         title = self.format_date(date.day, monthName, date.year)
-        archivePage = pywikibot.Page(self.site, l_archiveTitlePrefix + title)
+        self.archivePageTitle = l_archiveTitlePrefix + title
+        archivePage = pywikibot.Page(self.site, self.archivePageTitle)
 
         i = -1
         while True:
@@ -112,6 +118,11 @@ class SnapMain():
         text = text.replace(u'{{LOCALMONTHNAME}}', monthName)
         text = text.replace(u'{{LOCALYEAR}}', unicode(date.year))
         text = text.replace(u'{{/Interwikis}}', u'')
+
+        text = text.replace(u'{{FormatZahlLokal|{{ARTIKELANZAHL:R}}}}', 
+                self.numberofarticles[self.format_date(date.day, monthName, date.year)])
+        text = text.replace(u'{{ARTIKELANZAHL}}', 
+                self.numberofarticles[self.format_date(date.day, monthName, date.year)])
 
         #templates in main page subspace
         replaced_templates = [l_mainPageTitle]
@@ -146,9 +157,11 @@ class SnapMain():
 
 
         #print archivePage.text
-        #archivePage.save(comment=l_archiveComment, botflag=True, minor=False)
+        archivePage.save(comment=l_archiveComment, botflag=True, minor=False)
 
         self.redlinks(archivePage, date, monthName)
+
+        time.sleep(15)
 
     def replace_template(self, title, date):
         """get versions of templated, find visible version and find visible text"""
@@ -176,7 +189,7 @@ class SnapMain():
                 text = page.getOldVersion(revid)
                 break
 
-        onlyinc = re.findall(u'<onlyinclude>([\S\s]+?)</onlyinclude>', text)
+        onlyinc = re.findall(u'<onlyinclude>([\S\s]*?)</onlyinclude>', text)
         if len(onlyinc):
             text = u''
         for i in onlyinc:
@@ -195,23 +208,31 @@ class SnapMain():
         oldtext = self.reportPage.text
         linkgen = snap_page.linkedPages()
         for page in linkgen:
-            if not page.exists():
-                pywikibot.output(u'Pagelink ' + page.title() + ' is dead')
-                self.reportPage.text = u'* [[' + page.title() + u']]\n' +\
-                        self.reportPage.text
+            if page.title()[:28] != u'Wikipedia:Hauptseite/Archiv/' and\
+                    not page.exists():
+                if page.namespace() == 6:
+                    commonspage = pywikibot.ImagePage(self.commons, page.title(withNamespace=False))
+                    if not commonspage.exists():
+                        pywikibot.output(u'Image ' + page.title() + ' is dead')
+                        self.reportPage.text = u'* [[:' + page.title() + u']] ([[:commons:' +\
+                                commonspage.title() + u'|commons]])\n' + self.reportPage.text
+                else:
+                    pywikibot.output(u'Pagelink ' + page.title() + ' is dead')
+                    self.reportPage.text = u'* [[' + page.title() + u']]\n' +\
+                            self.reportPage.text
 
         imagegen = snap_page.imagelinks()
         for image in imagegen:
             commonspage = pywikibot.ImagePage(self.commons, image.title(withNamespace=False))
             if not image.exists() and not commonspage.exists():
                 pywikibot.output(u'Image ' + image.title() + ' is dead')
-                commonsurl = self.commns.getUrl() + u'/' + commonspage.title()
                 self.reportPage.text = u'* [[:' + image.title() + u']] ([[:commons:' +\
-                        commonspage.title() + u']])\n' + self.reportPage.text
+                        commonspage.title() + u'|commons]])\n' + self.reportPage.text
 
         if self.reportPage.text != oldtext:
-            self.reportPage.text = u';' + self.format_date(date.day,
-                    monthName, date.year) + u'\n' + self.reportPage.text
+            self.reportPage.text = u';[[' + self.archivePageTitle + u'|' +\
+                    self.format_date(date.day, monthName, date.year) + u']]\n' +\
+                    self.reportPage.text
 
         if date.day == 1:
             self.reportPage.text = u'=== ' + monthName + u' ===\n' +\

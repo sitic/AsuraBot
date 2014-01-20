@@ -14,7 +14,7 @@ mainPageTitle = {
 #will be added at the top of the snapshoted page
 archivePageIntro = {
     'en' : u'',
-    'de' : u'{{{{Wikipedia:Hauptseite/Archiv/Vorlage|Tag={day}|Monat={month}|Jahr={year}}}}}\n'
+    'de' : u'{{{{Wikipedia:Hauptseite/Archiv/Vorlage|Tag={day}|Monat={month}|Jahr={year}}}}}\n{{{{bots|denyscript=delinker}}}}\n'
 }
 #where to put the snapshoted page
 archiveTitlePrefix = {
@@ -108,7 +108,7 @@ class SnapMain():
         archivePage.text = pywikibot.removeCategoryLinks(archivePage.text)
         archivePage.text = l_archivePageIntro + archivePage.text
 
-        archivePage.save(comment=l_archiveComment, botflag=True, minor=False)
+        archivePage.save(comment=l_archiveComment, botflag=True, minor=False, force=True)
 
     def new_month(self):
         pywikibot.output(u'new month, updating template')

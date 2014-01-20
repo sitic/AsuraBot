@@ -7,6 +7,7 @@ import pywikibot
 import mwparserfromhell
 import re
 import dateutil.parser
+from dateutil.relativedelta import *
 import datetime
 import locale
 import redis
