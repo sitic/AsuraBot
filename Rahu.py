@@ -31,7 +31,7 @@ revIdTextAddon = (u'<noinclude>\n{{Kasten|Diese Zahl ist die Revisions-ID zu'
         u'[[Benutzer:AsuraBot]] aktualisiert.}}</noinclude>')
 
 revIdComment = u'Bot: neue Revisions ID'
-sandboxResetComment = u'[[WP:Bots|Bot]]: Spielwiese gemäht (zurückgesetzt) ([[Benutzer:Sitic/WL#Neugestaltung|Pilotphase]])'
+sandboxResetComment = u'[[WP:Bots|Bot]]: Spielwiese gemäht (zurückgesetzt)'
 sandboxTemplateInsertComment = u'[[WP:Bots|Bot]]: Begrüßungskasten am Einfang eingefügt' +\
         u', bitte erst nach dieser Zeile schreiben.'
 sandboxTextComment = sandboxResetComment + \
@@ -180,14 +180,15 @@ class IrcHandler:
     try:
         _ = self.sandboxPage.get(force=True, get_redirect=True)
         self.sandboxPage.text = sandboxDefault
-        self.sandboxPage.save(comment=comment, botflag=False, minor=False)
+        self.sandboxPage.save(comment=comment, botflag=botflag, minor=False)
         self.sandbox_is_changed = False
         self.sandbox_is_default = True
         pywikibot.output(u'\03{lightyellow}Done!\03{default}')
     except pywikibot.EditConflict:
         pywikibot.output(u'\03{lightyellow}Editconflict while'
                 u'reseting!\03{default}')
-        self.reset_sandbox(comment, botflag=False)
+        self.sandbox_is_changed = True
+        self.sandbox_is_default = False
     except pywikibot.NoPage:
         pywikibot.output(u'\n\03{lightpurple}Sandbox does not seem do exist, '
                 u'pywikibot.Nopage error.\03{default}')

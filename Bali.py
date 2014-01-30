@@ -25,15 +25,15 @@ templateComment = u'Bot: dieser Artikel ist heute Artikel des Tages'
 verwaltungTitle1 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung'
 verwaltungTitle2 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel'
 
-talkPageErrorMsgDay = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist'
-        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]]</small>\n\nDer Eintrag:\n*'
-        u'{line}\nenthält das aktuelle Tagesdatum, obwohl der heutige AdT {adt} ist. Der Fehler wurde'
+talkPageErrorMsgDay = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist '
+        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nDer Eintrag:\n*'
+        u'{line}\nenthält das aktuelle Tagesdatum, obwohl der heutige AdT [[{adt}]] ist. Der Fehler wurde '
         u'\'\'nicht\'\' berichtigt, bitte überprüfen. --~~~~')
-talkPageErrorMsgTime = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist'
-        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]]</small>\n\nDer Eintrag:\n*'
-        u'{line}\ndes heutigen AdT enthält ein Datum, das nicht das heutige ist, aber höchstens zwei Jahre'
+talkPageErrorMsgTime = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist '
+        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nDer Eintrag:\n*'
+        u'{line}\ndes heutigen AdT enthält ein Datum, das nicht das heutige ist, aber höchstens zwei Jahre '
         u'zurückliegt. Der Fehler wurde \'\'nicht\'\' berichtigt, bitte überprüfen (auch die Chronologie. --~~~~')
-talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des heutigen Adt ({date}) */, manuelle'
+talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des heutigen Adt ({date}) */, manuelle '
         u'Berichtigung notwendig')
 
 class AdtMain():
@@ -118,7 +118,8 @@ class AdtMain():
                             talkpage = page.toggleTalkPage()
                             talkpage.text += talkPageErrorMsgTime.format(date=self.adtDate, line=text_line)
                             comment = talkPageErrorComment.format(date=self.adtDate)
-                            talkpage.save(comment=comment, botlfag=False, minor=False)
+			    pywikibot.output(talkPageErrorMsgTime.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
+                            talkpage.save(comment=comment, botflag=False, minor=False)
                     if self.adtErneut:
                         text_line = text_line.rsplit('</small>', 1)[0]
                         text_line += u' + ' + self.adtDate + u'</small> -'
@@ -132,7 +133,8 @@ class AdtMain():
                 talkpage = page.toggleTalkPage()
                 talkpage.text += talkPageErrorMsgDay.format(date=self.adtDate, line=text_line, adt=self.adtTitle)
                 comment = talkPageErrorComment.format(date=self.adtDate)
-                talkpage.save(comment=comment, botlfag=False, minor=False)
+		pywikibot.output(talkPageErrorMsgDay.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
+                talkpage.save(comment=comment, botflag=False, minor=False)
 
         if page.text != u'\n'.join(line_list):
             page.text = u'\n'.join(line_list)
