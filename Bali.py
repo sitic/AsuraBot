@@ -120,7 +120,7 @@ class AdtMain():
                     for r_date in r:
                         date = dateutil.parser.parse(r_date, dayfirst=True).date()
                         if date == self.today:
-                            if len(r) > 1:
+                            if len(r) == 1:
                                 self.adtErneut = False
                             found = True
                             pywikibot.output(u'Verwaltung: AdT Datum war schon eingetragen' + pageTitle +\
@@ -132,7 +132,7 @@ class AdtMain():
                             comment = talkPageErrorComment.format(date=self.adtDate)
 			    pywikibot.output(talkPageErrorMsgTime.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
                             talkpage.save(comment=comment, botflag=False, minor=False)
-                    if self.adtErneut:
+                    if not found:
                         text_line = text_line.rsplit('</small>', 1)[0]
                         text_line += u' + ' + self.adtDate + u'</small> -'
                 else:
