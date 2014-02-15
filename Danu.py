@@ -64,7 +64,8 @@ class SnapMain():
         self.maxDays = pywikibot.date.getNumberOfDaysInMonth(
                 time.localtime().tm_mon)
         if time.localtime().tm_mday == self.maxDays: #end of the month?
-            self.new_month()
+            pass
+            #self.new_month()
 
     def format_date(self, day, monthName, year):
         """

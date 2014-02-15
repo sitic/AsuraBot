@@ -33,6 +33,11 @@ talkPageErrorMsgTime = (u'\n== Fehler beim automatischen Eintragen des heutigen 
         u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nDer Eintrag:\n*'
         u'{line}\ndes heutigen AdT enthält ein Datum, das nicht das heutige ist, aber höchstens zwei Jahre '
         u'zurückliegt. Der Fehler wurde \'\'nicht\'\' berichtigt, bitte überprüfen (auch die Chronologie. --~~~~')
+talkPageErrorNotFound = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist '
+        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nIch konnte den heutigen AdT '
+	u'[[{adt}]] weder in der [[Wikipedia:Hauptseite/Artikel des Tages/Verwaltung|Verwaltung]] noch in '
+	u'[[Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel|Verwaltung Lesenswerte]] finden. '
+	u'Bitte überprüfen und ggf. berichtigen. --~~~~')
 talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des heutigen Adt ({date}) */, manuelle '
         u'Berichtigung notwendig')
 
@@ -88,7 +93,13 @@ class AdtMain():
         if not found:
             found = self.__verwaltung(verwaltungTitle2)
         if not found:
-            pywikibot.warning(u'Verwlatung: AdT nicht gefunden!')
+            pywikibot.warning(u'Verwaltung: AdT nicht gefunden!')
+            page = pywikibot.Page(self.site, verwaltungTitle1)
+            talkpage = page.toggleTalkPage()
+            talkpage.text += talkPageErrorNotFound.format(date=self.adtDate, line=text_line, adt=self.adtTitle)
+            comment = talkPageErrorComment.format(date=self.adtDate)
+	    pywikibot.output(talkPageErrorNotFound.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
+            talkpage.save(comment=comment, botflag=False, minor=False)
     def __verwaltung(self, pageTitle):
         page = pywikibot.Page(self.site, pageTitle)
         oldtext = page.text ##debug
@@ -109,9 +120,10 @@ class AdtMain():
                     for r_date in r:
                         date = dateutil.parser.parse(r_date, dayfirst=True).date()
                         if date == self.today:
-                            self.adtErneut = False
+                            if len(r) > 1:
+                                self.adtErneut = False
                             found = True
-                            pywikibot.output(u'Verwaltung: AdT wurde schon in ' + pageTitle +\
+                            pywikibot.output(u'Verwaltung: AdT Datum war schon eingetragen' + pageTitle +\
                                     u' eingetragen')
                             break
                         elif date + relativedelta(years=2) > self.today:
@@ -168,7 +180,7 @@ class AdtMain():
             part = chronPage.text.split(u'===', 1)
             part[0] += u'=== ' + self.monthName + u' ' +\
                     unicode(self.year) + u' '
-            part[2] = u'\n' + part[2]
+            part[1] = u'\n===' + part[1]
         else:
             part = chronPage.text.split(u'===\n', 1)
 

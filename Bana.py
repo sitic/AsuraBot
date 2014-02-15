@@ -39,6 +39,7 @@ class AdtMain():
                         datetime.datetime.now().strftime('%d. %B %Y, %H:%M:%S'))
 
         self.adt_disc()
+        self.weblink_cat()
 
     def adt_disc(self):
         discPage = pywikibot.Page(self.site, discPageTitle)
@@ -109,6 +110,17 @@ class AdtMain():
         self.red.sadd(rand_str, title)
         pywikibot.output(u"Added " + title + u" to redis set " +\
                         rand_str.decode('utf8') + u'\n')
+    def weblink_cat(self):
+        page = pywikibot.Page(self.site, u'Kategorie:Wikipedia:Defekter Weblink Bot/' + datetime.date.today().strftime('%Y-%m-%d'))
+        if not page.exists():
+            pywikibot.output(u'\nWLW: Erstelle Kategorie:Wikipedia:Defekter Weblink Bot/' + datetime.date.today().strftime('%Y-%m-%d'))
+            page.text = u'{{Defekter Weblink Bot/KatVorlageTäglich}}'
+            page.save(comment=u'Bot: {{Defekter Weblink Bot/KatVorlageTäglich}}', botflag=True, minor=True)
+        page = pywikibot.Page(self.site, u'Kategorie:Wikipedia:Defekter Weblink Bot/' + datetime.date.today().strftime('%Y-%m'))
+        if datetime.date.today().day == 1 and not page.exists():
+            pywikibot.output(u'\nWLW: Erstelle Kategorie:Wikipedia:Defekter Weblink Bot/' + datetime.date.today().strftime('%Y-%m'))
+            page.text = u'{{Defekter Weblink Bot/KatVorlageTäglich}}'
+            page.save(comment=u'Bot: {{Defekter Weblink Bot/KatVorlageTäglich}}', botflag=True, minor=True)
 
 if __name__ == "__main__":
     try:
