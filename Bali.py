@@ -50,21 +50,29 @@ class AdtMain():
 
         locale.setlocale(locale.LC_ALL, 'de_DE.utf8')
         self.today = datetime.date.today()
-        self.dayName = self.today.strftime('%A')
-        self.monthName = self.today.strftime('%B')
+        self.dayName = self.today.strftime('%A').decode('utf-8')
+        self.monthName = self.today.strftime('%B').decode('utf-8')
         self.year = self.today.year
-        self.adtDate = self.today.strftime('%d.%m.%Y') #31.12.2013
-        self.snapDate = self.today.strftime('%d. %B %Y') #31. Dezember 2013
+        self.adtDate = self.today.strftime('%d.%m.%Y').decode('utf-8') #31.12.2013
+        self.snapDate = self.today.strftime('%d. %B %Y').decode('utf-8') #31. Dezember 2013
         pywikibot.output(u'\n\ninit complete: ' +\
-                        datetime.datetime.now().strftime('%d. %B %Y, %H:%M:%S'))
+                        (datetime.datetime.now().strftime('%d. %B %Y, %H:%M:%S')).decode('utf-8'))
 
         self.adtErneut = None
         self.adtTitle = None
 
         self.get_adt()
         if self.adtTitle != None:
-            self.addto_verwaltung()
-            self.addto_chron()
+            try:
+                self.addto_verwaltung()
+	    except Exception as inst:
+		pywikibot.output(u'ERROR: ' + type(inst))
+		pywikibot.output(inst)
+            try:
+                self.addto_chron()
+	    except Exception as inst:
+		pywikibot.output(u'ERROR: ' + type(inst))
+		pywikibot.output(inst)
             #self.add_template()
             #self.cleanup_templates()
 
@@ -96,9 +104,9 @@ class AdtMain():
             pywikibot.warning(u'Verwaltung: AdT nicht gefunden!')
             page = pywikibot.Page(self.site, verwaltungTitle1)
             talkpage = page.toggleTalkPage()
-            talkpage.text += talkPageErrorNotFound.format(date=self.adtDate, line=text_line, adt=self.adtTitle)
+            talkpage.text += talkPageErrorNotFound.format(date=self.adtDate, adt=self.adtTitle)
             comment = talkPageErrorComment.format(date=self.adtDate)
-	    pywikibot.output(talkPageErrorNotFound.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
+	    pywikibot.output(talkPageErrorNotFound.format(date=self.adtDate, adt=self.adtTitle))
             talkpage.save(comment=comment, botflag=False, minor=False)
     def __verwaltung(self, pageTitle):
         page = pywikibot.Page(self.site, pageTitle)
