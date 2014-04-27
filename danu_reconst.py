@@ -4,6 +4,7 @@
 # Copyright (C) 2013-2014 sitic
 
 import pywikibot
+import pywikibot.date
 import mwparserfromhell
 import time
 import locale
@@ -58,8 +59,8 @@ class SnapMain():
         self.commons = self.site.image_repository()
 
         self.localtz = tz.gettz('Europe/Berlin')
-        startdate = datetime(2012,  3,  1, 23, 59, 59, tzinfo=self.localtz)
-        enddate   = datetime(2012,  1,  1, 23, 59, 59, tzinfo=self.localtz)
+        startdate = datetime(2014,  4, 26, 23, 59, 59, tzinfo=self.localtz)
+        enddate   = datetime(2014,  4, 22, 23, 59, 59, tzinfo=self.localtz)
 
         self.reportPage = pywikibot.Page(self.site, redlinksPage)
 

@@ -4,6 +4,7 @@
 # Copyright (C) 2013-2014 sitic
 
 import pywikibot
+import pywikibot.date
 import time
 
 #what should be snapshoted?

@@ -32,7 +32,7 @@ revIdTextAddon = (u'<noinclude>\n{{Kasten|Diese Zahl ist die Revisions-ID zu'
 
 revIdComment = u'Bot: neue Revisions ID'
 sandboxResetComment = u'[[WP:Bots|Bot]]: Spielwiese gemäht (zurückgesetzt)'
-sandboxTemplateInsertComment = u'[[WP:Bots|Bot]]: Begrüßungskasten am Einfang eingefügt' +\
+sandboxTemplateInsertComment = u'[[WP:Bots|Bot]]: Begrüßungskasten am Anfang eingefügt' +\
         u', bitte erst nach dieser Zeile schreiben.'
 sandboxTextComment = sandboxResetComment + \
         u', neue Version des [['+ textTitle + '|Standardtextes]]'
@@ -130,7 +130,7 @@ class IrcHandler:
   def sandbox_changed(self):
     """Something on the sandbox changed, check what."""
     
-    time.sleep(0.5) #sometimes were are faster then mediawiki
+    time.sleep(0.5) #sometimes we are faster then mediawiki
     text = self.sandboxPage.get(force=True, get_redirect=True)
     if text == self.sandboxDefaultText:
         self.sandbox_is_changed = False
@@ -144,7 +144,7 @@ class IrcHandler:
     else:
         pywikibot.output(u"\n\03{lightyellow}" + time.strftime(timeformat) +\
                u" Sandbox was changed\03{default}")
-        #pywikibot.showDiff(self.sandboxDefaultText, text)
+        #pywikibot.showDiff(self.sandboxDefaultText, text) #DEBUG
         self.sandbox_is_changed = True
         self.t_changed = time.time()
         if self.sandbox_is_default:
