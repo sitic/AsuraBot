@@ -66,14 +66,14 @@ class AdtMain():
         if self.adtTitle != None:
             try:
                 self.addto_verwaltung()
-	    except Exception as inst:
-		pywikibot.output(u'ERROR: ' + type(inst))
-		pywikibot.output(inst)
+            except Exception as inst:
+                pywikibot.output(u'ERROR: ' + str(type(inst)))
+                pywikibot.output(inst)
             try:
                 self.addto_chron()
-	    except Exception as inst:
-		pywikibot.output(u'ERROR: ' + type(inst))
-		pywikibot.output(inst)
+            except Exception as inst:
+                pywikibot.output(u'ERROR: ' + str(type(inst)))
+                pywikibot.output(inst)
             #self.add_template()
             #self.cleanup_templates()
 
@@ -255,7 +255,7 @@ class AdtMain():
                         pywikibot.output(title + u': {{wird AdT}} gefunden,'
                                 u' entfernt')
                     else:
-                        pywikibot.output(title + u': {{wird AdT}} gefunden,' 
+                        pywikibot.output(title + u': {{wird AdT}} gefunden,'
                                 u' belassen da für ' + unicode(date))
 
             if unicode(code) != page.text:
