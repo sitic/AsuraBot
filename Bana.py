@@ -64,7 +64,7 @@ class AdtMain():
                 d = re.search(r'\d{1,2}\.\d{1,2}\.\d{2,4}\s?:', sectionname)
                 if d:
                         date = dateutil.parser.parse(d.group()[:-1], dayfirst=True)
-                        if date.date() <= self.today and section_count < 5:
+                        if date.date() <= self.today and section_count < 6:
                                 header_line = line_count
                                 adt = re.search(r'\[\[(?P<adt>[^\|\]]*)\|?[^\]]*?\]\]', text_line)
                                 if not adt:

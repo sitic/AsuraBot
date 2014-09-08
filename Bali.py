@@ -25,15 +25,16 @@ templateComment = u'Bot: dieser Artikel ist heute Artikel des Tages'
 verwaltungTitle1 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung'
 verwaltungTitle2 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel'
 
-talkPageErrorMsgDay = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist '
+talkPageHeading = u'\n\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n'
+talkPageErrorMsgDay = talkPageHeading + (u'<small>Dies ist '
         u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nDer Eintrag:\n*'
         u'{line}\nenthält das aktuelle Tagesdatum, obwohl der heutige AdT [[{adt}]] ist. Der Fehler wurde '
         u'\'\'nicht\'\' berichtigt, bitte überprüfen. --~~~~')
-talkPageErrorMsgTime = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist '
+talkPageErrorMsgTime = talkPageHeading + (u'<small>Dies ist '
         u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nDer Eintrag:\n*'
         u'{line}\ndes heutigen AdT enthält ein Datum, das nicht das heutige ist, aber höchstens zwei Jahre '
-        u'zurückliegt. Der Fehler wurde \'\'nicht\'\' berichtigt, bitte überprüfen (auch die Chronologie. --~~~~')
-talkPageErrorNotFound = (u'\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n<small>Dies ist '
+        u'zurückliegt. Der Fehler wurde \'\'nicht\'\' berichtigt, bitte überprüfen (auch die Chronologie). --~~~~')
+talkPageErrorNotFound = talkPageHeading + (u'<small>Dies ist '
         u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nIch konnte den heutigen AdT '
 	u'[[{adt}]] weder in der [[Wikipedia:Hauptseite/Artikel des Tages/Verwaltung|Verwaltung]] noch in '
 	u'[[Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel|Verwaltung Lesenswerte]] finden. '
@@ -89,7 +90,7 @@ class AdtMain():
                         unicode(template.get(u'DATUM').value))
                 if l and dateutil.parser.parse(d.group(),
                         dayfirst=True).date() == self.today:
-                    self.adtTitle = l.group('adt')
+                    self.adtTitle = l.group('adt').strip()
                     pywikibot.output(u'Heutiger AdT: ' + self.adtTitle)
                 else:
                     pywikibot.error(u'Konnte heutigen AdT nicht finden!')
@@ -104,9 +105,12 @@ class AdtMain():
             pywikibot.warning(u'Verwaltung: AdT nicht gefunden!')
             page = pywikibot.Page(self.site, verwaltungTitle1)
             talkpage = page.toggleTalkPage()
+            pywikibot.output(talkPageErrorNotFound.format(date=self.adtDate, adt=self.adtTitle))
+            if talkPageHeading.format(date=self.adtDate) in talkpage.text:
+                return
+
             talkpage.text += talkPageErrorNotFound.format(date=self.adtDate, adt=self.adtTitle)
             comment = talkPageErrorComment.format(date=self.adtDate)
-	    pywikibot.output(talkPageErrorNotFound.format(date=self.adtDate, adt=self.adtTitle))
             talkpage.save(comment=comment, botflag=False, minor=False)
     def __verwaltung(self, pageTitle):
         page = pywikibot.Page(self.site, pageTitle)
@@ -136,10 +140,11 @@ class AdtMain():
                             break
                         elif date + relativedelta(years=2) > self.today:
                             talkpage = page.toggleTalkPage()
-                            talkpage.text += talkPageErrorMsgTime.format(date=self.adtDate, line=text_line)
-                            comment = talkPageErrorComment.format(date=self.adtDate)
-			    pywikibot.output(talkPageErrorMsgTime.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
-                            talkpage.save(comment=comment, botflag=False, minor=False)
+                            pywikibot.output(talkPageErrorMsgTime.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
+                            if not talkPageHeading.format(date=self.adtDate) in talkpage.text:
+                                talkpage.text += talkPageErrorMsgTime.format(date=self.adtDate, line=text_line)
+                                comment = talkPageErrorComment.format(date=self.adtDate)
+                                talkpage.save(comment=comment, botflag=False, minor=False)
                     if not found:
                         text_line = text_line.rsplit('</small>', 1)[0]
                         text_line += u' + ' + self.adtDate + u'</small> -'
@@ -151,10 +156,11 @@ class AdtMain():
                 line_list[line_count] = text_line
             elif self.adtDate.strip() in text_line.strip():
                 talkpage = page.toggleTalkPage()
-                talkpage.text += talkPageErrorMsgDay.format(date=self.adtDate, line=text_line, adt=self.adtTitle)
-                comment = talkPageErrorComment.format(date=self.adtDate)
-		pywikibot.output(talkPageErrorMsgDay.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
-                talkpage.save(comment=comment, botflag=False, minor=False)
+                pywikibot.output(talkPageErrorMsgDay.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
+                if not talkPageHeading.format(date=self.adtDate) in talkpage.text:
+                    talkpage.text += talkPageErrorMsgDay.format(date=self.adtDate, line=text_line, adt=self.adtTitle)
+                    comment = talkPageErrorComment.format(date=self.adtDate)
+                    talkpage.save(comment=comment, botflag=False, minor=False)
 
         if page.text != u'\n'.join(line_list):
             page.text = u'\n'.join(line_list)
