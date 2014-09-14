@@ -106,8 +106,8 @@ class SnapMain():
         date = self.format_date(self.day, self.monthName, self.year)
         archivePage = pywikibot.Page(self.site, l_archiveTitlePrefix + date)
 
-        archivePage.text = pywikibot.removeLanguageLinks(mainPage.expand_text())
-        archivePage.text = pywikibot.removeCategoryLinks(archivePage.text)
+        archivePage.text = pywikibot.textlib.removeLanguageLinks(mainPage.expand_text())
+        archivePage.text = pywikibot.textlib.removeCategoryLinks(archivePage.text)
         archivePage.text = l_archivePageIntro + archivePage.text
 
         archivePage.save(comment=l_archiveComment, botflag=True, minor=False, force=True)
