@@ -6,8 +6,8 @@
 import pywikibot
 import mwparserfromhell
 import re
-import dateutil.parser
-from dateutil.relativedelta import *
+import dateutil.parser as dateparser
+import dateutil.relativedelta as datedelta
 import datetime
 import locale
 import redis
@@ -16,54 +16,63 @@ redisServer = 'tools-redis'
 redisPort = 6379
 redisDB = 9
 
-redSetMain = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x' #openssl rand -base64 30
+# openssl rand -base64 30
+redSetMain = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x'
 
 adtPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/{dayName}'
 chronPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/Chronologie {year}'
 editComment = u'Bot: heutiger AdT: [[{adt}]]{erneut}'
 templateComment = u'Bot: dieser Artikel ist heute Artikel des Tages'
 verwaltungTitle1 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung'
-verwaltungTitle2 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel'
+verwaltungTitle2 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel' # NOQA
 
-talkPageHeading = u'\n\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n'
+talkPageHeading = u'\n\n== Fehler beim automatischen Eintragen des heutigen Adt ({date}) ==\n' # NOQA
 talkPageErrorMsgDay = talkPageHeading + (u'<small>Dies ist '
-        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nDer Eintrag:\n*'
-        u'{line}\nenthält das aktuelle Tagesdatum, obwohl der heutige AdT [[{adt}]] ist. Der Fehler wurde '
+        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nDer Eintrag:\n*' # NOQA
+        u'{line}\nenthält das aktuelle Tagesdatum, obwohl der heutige AdT [[{adt}]] ist. Der Fehler wurde ' # NOQA
         u'\'\'nicht\'\' berichtigt, bitte überprüfen. --~~~~')
 talkPageErrorMsgTime = talkPageHeading + (u'<small>Dies ist '
-        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nDer Eintrag:\n*'
-        u'{line}\ndes heutigen AdT enthält ein Datum, das nicht das heutige ist, aber höchstens zwei Jahre '
-        u'zurückliegt. Der Fehler wurde \'\'nicht\'\' berichtigt, bitte überprüfen (auch die Chronologie). --~~~~')
+        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nDer Eintrag:\n*' # NOQA
+        u'{line}\ndes heutigen AdT enthält ein Datum, das nicht das heutige ist, aber höchstens zwei Jahre ' # NOQA
+        u'zurückliegt. Der Fehler wurde \'\'nicht\'\' berichtigt, bitte überprüfen (auch die Chronologie). --~~~~') # NOQA
 talkPageErrorNotFound = talkPageHeading + (u'<small>Dies ist '
-        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nIch konnte den heutigen AdT '
-	u'[[{adt}]] weder in der [[Wikipedia:Hauptseite/Artikel des Tages/Verwaltung|Verwaltung]] noch in '
-	u'[[Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel|Verwaltung Lesenswerte]] finden. '
-	u'Bitte überprüfen und ggf. berichtigen. --~~~~')
-talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des heutigen Adt ({date}) */, manuelle '
-        u'Berichtigung notwendig')
+        u'eine automatisch erstellte Fehlermeldung eines [[WP:Bots|Bots]].</small>\n\nIch konnte den heutigen AdT ' # NOQA
+        u'[[{adt}]] weder in der [[Wikipedia:Hauptseite/Artikel des Tages/Verwaltung|Verwaltung]] noch in ' # NOQA
+        u'[[Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel|Verwaltung Lesenswerte]] finden. ' # NOQA
+        u'Bitte überprüfen und ggf. berichtigen. --~~~~')
+talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des '
+                        u'heutigen Adt ({date}) */, manuelle Berichtigung '
+                        u'notwendig')
+
 
 class AdtMain():
     def __init__(self):
         self.site = pywikibot.Site()
         self.site.login()
 
-        self.red = redis.StrictRedis(host=redisServer, port=redisPort, db=redisDB)
+        self.red = redis.StrictRedis(host=redisServer, port=redisPort,
+                                     db=redisDB)
 
         locale.setlocale(locale.LC_ALL, 'de_DE.utf8')
         self.today = datetime.date.today()
         self.dayName = self.today.strftime('%A').decode('utf-8')
         self.monthName = self.today.strftime('%B').decode('utf-8')
         self.year = self.today.year
-        self.adtDate = self.today.strftime('%d.%m.%Y').decode('utf-8') #31.12.2013
-        self.snapDate = self.today.strftime('%d. %B %Y').decode('utf-8') #31. Dezember 2013
-        pywikibot.output(u'\n\ninit complete: ' +\
-                        (datetime.datetime.now().strftime('%d. %B %Y, %H:%M:%S')).decode('utf-8'))
+
+        # 31.12.2013
+        self.adtDate = self.today.strftime('%d.%m.%Y').decode('utf-8')
+
+        # 31. Dezember 2013
+        self.snapDate = self.today.strftime('%d. %B %Y').decode('utf-8')
+        pywikibot.output(u'\n\ninit complete: ' +
+                         (datetime.datetime.now()
+                          .strftime('%d. %B %Y, %H:%M:%S')).decode('utf-8'))
 
         self.adtErneut = None
         self.adtTitle = None
 
         self.get_adt()
-        if self.adtTitle != None:
+        if self.adtTitle is not None:
             try:
                 self.addto_verwaltung()
             except Exception as inst:
@@ -85,11 +94,11 @@ class AdtMain():
         for template in code.filter_templates():
             if template.name.matches((u'AdT-Vorschlag', u'AdT-Vorschlag\n')):
                 l = re.search(r'\s*(?P<adt>.*)\s*\n?',
-                        unicode(template.get(u'LEMMA').value))
+                              unicode(template.get(u'LEMMA').value))
                 d = re.search(r'\d{1,2}\.\d{1,2}\.\d{2,4}',
-                        unicode(template.get(u'DATUM').value))
-                if l and dateutil.parser.parse(d.group(),
-                        dayfirst=True).date() == self.today:
+                              unicode(template.get(u'DATUM').value))
+                if l and dateparser.parse(d.group(),
+                                          dayfirst=True).date() == self.today:
                     self.adtTitle = l.group('adt').strip()
                     pywikibot.output(u'Heutiger AdT: ' + self.adtTitle)
                 else:
@@ -105,16 +114,19 @@ class AdtMain():
             pywikibot.warning(u'Verwaltung: AdT nicht gefunden!')
             page = pywikibot.Page(self.site, verwaltungTitle1)
             talkpage = page.toggleTalkPage()
-            pywikibot.output(talkPageErrorNotFound.format(date=self.adtDate, adt=self.adtTitle))
+            pywikibot.output(talkPageErrorNotFound.format(date=self.adtDate,
+                                                          adt=self.adtTitle))
             if talkPageHeading.format(date=self.adtDate) in talkpage.text:
                 return
 
-            talkpage.text += talkPageErrorNotFound.format(date=self.adtDate, adt=self.adtTitle)
+            talkpage.text += talkPageErrorNotFound.format(date=self.adtDate,
+                                                          adt=self.adtTitle)
             comment = talkPageErrorComment.format(date=self.adtDate)
             talkpage.save(comment=comment, botflag=False, minor=False)
+
     def __verwaltung(self, pageTitle):
         page = pywikibot.Page(self.site, pageTitle)
-        oldtext = page.text ##debug
+        oldtext = page.text  # debug
         line_list = page.text.splitlines()
         found = False
 
@@ -130,7 +142,7 @@ class AdtMain():
                 if r:
                     self.adtErneut = True
                     for r_date in r:
-                        date = dateutil.parser.parse(r_date, dayfirst=True).date()
+                        date = dateparser.parse(r_date, dayfirst=True).date()
                         if date == self.today:
                             if len(r) == 1:
                                 self.adtErneut = False
@@ -138,7 +150,7 @@ class AdtMain():
                             pywikibot.output(u'Verwaltung: AdT Datum war schon eingetragen' + pageTitle +\
                                     u' eingetragen')
                             break
-                        elif date + relativedelta(years=2) > self.today:
+                        elif date + datedelta.relativedelta(years=2) > self.today:
                             talkpage = page.toggleTalkPage()
                             pywikibot.output(talkPageErrorMsgTime.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
                             if not talkPageHeading.format(date=self.adtDate) in talkpage.text:
@@ -168,7 +180,7 @@ class AdtMain():
                 comment = editComment.format(adt=self.adtTitle,erneut=u' (erneut)')
             else:
                 comment = editComment.format(adt=self.adtTitle,erneut=u'')
-            pywikibot.showDiff(oldtext,page.text) ##debug
+            pywikibot.showDiff(oldtext,page.text)  # debug
             page.save(comment=comment, botflag=False, minor=True)
             return True
         elif found:
@@ -180,7 +192,7 @@ class AdtMain():
     def addto_chron(self):
         title = chronPageTitle.format(year=self.year)
         chronPage = pywikibot.Page(self.site, title)
-        oldtext = chronPage.text ##debug
+        oldtext = chronPage.text  # debug
 
         d = re.search(self.adtDate, chronPage.text)
         if d:
@@ -212,7 +224,7 @@ class AdtMain():
         text += u'\n' + part[1]
 
         chronPage.text = text
-        pywikibot.showDiff(oldtext,text) ##debug
+        pywikibot.showDiff(oldtext, text)  # debug
         chronPage.save(comment=comment, botflag=False, minor=False)
 
     def add_template(self):
@@ -234,7 +246,7 @@ class AdtMain():
             template = u'{{war AdT|1=' + self.adtDate + u'}}\n'
             adtPage.text = template + adtPage.text
 
-        print adtPage.text ##debug
+        print adtPage.text  # debug
         #adtPage.save(comment=templateComment, botflag=False, minor=False)
 
     def cleanup_templates(self):
@@ -249,7 +261,7 @@ class AdtMain():
             for template in code.filter_templates(recursive=False):
                 if template.name.matches("wird AdT"):
                     param_tag = template.get(u'Tag').value
-                    date = dateutil.parser.parse(param_tag, dayfirst=True).date()
+                    date = dateparser.parse(param_tag, dayfirst=True).date()
                     if date <= self.today:
                         code.remove(template)
                         pywikibot.output(title + u': {{wird AdT}} gefunden,'
@@ -259,7 +271,7 @@ class AdtMain():
                                 u' belassen da für ' + unicode(date))
 
             if unicode(code) != page.text:
-		    pass #page.save()
+                pass #page.save()
 
 if __name__ == "__main__":
     try:

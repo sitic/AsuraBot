@@ -42,10 +42,10 @@ sandboxDeletedComment = (u'Bot: Spielwiese wurde gelöscht, ich erstelle neue '
 merlBotPage = u'Wikipedia:Spielwiese/Vorlage' #fix for dewiki:User:MerlBot
 timeformat = '%d. %B %Y, %H:%M:%S: '
 
-class IrcHandler: 
+class IrcHandler:
   """IrcListener calls IrcHander.new_event for every new rc log entry.
   Do all the real work here.
-  
+
   """
   def __init__(self):
     self.site = pywikibot.Site()
@@ -63,13 +63,13 @@ class IrcHandler:
 
   def new_event(self, message): #new rc log entry
      """new rc log entry from IRC.
-     Watch for changes on sandbox and related pages, 
+     Watch for changes on sandbox and related pages,
      if found start functions dealing with the change as new thread.
      Check the reset timers"""
      try:
           message = message.encode('utf-8', 'ignore').strip()
-          page = message.split('\x0314[[\x0307', 1)[1] 
-          page = page.split('\x0314]]\x034', 1)[0] 
+          page = message.split('\x0314[[\x0307', 1)[1]
+          page = page.split('\x0314]]\x034', 1)[0]
 
           if 'Spezial:Log' in page:
               if 'Spezial:Log/delete' in page and \
@@ -88,10 +88,10 @@ class IrcHandler:
                   #editcomment = editcomment.rsplit('\x03', 1)[0]
                   #flags = message.split('\x0314]]\x034 ', 1)[1]
                   #flags = flags.split('\x0310', 1)[0]
-                  
+
                   user = message.split('\x035*\x03 \x0303', 1)[1]
                   user = user.split('\x03 \x035*\x03', 1)[0]
-                  
+
 		  # add .decode('utf-8', 'replace')?
                   ##includes fix for dewiki:User:MerlBot
                   if page.decode('utf-8', 'ignore').strip() == sandboxTitle.strip() and \
@@ -129,7 +129,7 @@ class IrcHandler:
 
   def sandbox_changed(self):
     """Something on the sandbox changed, check what."""
-    
+
     time.sleep(0.5) #sometimes we are faster then mediawiki
     text = self.sandboxPage.get(force=True, get_redirect=True)
     if text == self.sandboxDefaultText:
@@ -194,13 +194,13 @@ class IrcHandler:
                 u'pywikibot.Nopage error.\03{default}')
 	#rc watcher should take care of this, this can happen on startup
         time.sleep(20)
-        self.sandbox_deleted() 
+        self.sandbox_deleted()
 
   def sandbox_deleted(self):
     """When the sandbox is deleted, we need to create a version with
     only sandbox template and one with sandbox template + text.
     Then we update the revids used by the template
-    
+
     """
     pywikibot.output(u'\n\03{lightpurple}' + time.strftime(timeformat) +\
             u'Sandbox was deleted, creating new one\03{default}')
@@ -242,7 +242,7 @@ class IrcHandler:
     revIdTextPage = pywikibot.Page(self.site, revIdTextTitle)
     revIdTextPage.text = revIdDoku+unicode(revidtext)+revIdTextAddon
     revIdTextPage.save(comment=revIdComment, botflag=True)
-    
+
     self.sandbox_is_changed = False
     self.sandbox_is_default = True
 
@@ -280,7 +280,7 @@ class IrcHandler:
 class IrcListener(irc.bot.SingleServerIRCBot):
   """Takes care of the IRC backend,
   calls IrcHander.new_event() for new rc log entries
-  
+
   """
   def __init__(self):
     irc.bot.SingleServerIRCBot.__init__(self, [("irc.wikimedia.org", 6667)],
@@ -290,7 +290,7 @@ class IrcListener(irc.bot.SingleServerIRCBot):
     self.handler = IrcHandler()
 
     self.start()
-    
+
   def on_nicknameinuse(self, c, e):
     c.nick(c.get_nickname() + "_wtf")
 
