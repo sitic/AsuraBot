@@ -36,7 +36,7 @@ class Purger():
 
         page = pywikibot.Page(self.site, PurgePage)
         if not page.exists():
-            pywikibot.output(u'ERROR: page not found')
+            pywikibot.output(u'\nERROR: page not found')
             raise pywikibot.NoSuchSite
         for regex, option in zip(ListRegex, ListOptions):
             self.parse(regex, page.expand_text(includecomments=True), option)
@@ -49,9 +49,9 @@ class Purger():
             for i in code.filter_wikilinks():
                 links.append(i.title)
             if option is None:
-                pywikibot.output('purging: ' + str(links))
+                pywikibot.output('\npurging: ' + str(links))
             else:
-                pywikibot.output(option.keys()[0] + u': ' + str(links))
+                pywikibot.output('\n' + option.keys()[0] + u': ' + str(links))
             if links:
                 self.purge(links, option)
 

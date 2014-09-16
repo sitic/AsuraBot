@@ -47,6 +47,7 @@ talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des '
 
 class AdtMain():
     def __init__(self):
+        self.dry = False  # debug
         self.site = pywikibot.Site()
         self.site.login()
 
@@ -72,6 +73,8 @@ class AdtMain():
         self.adtTitle = None
 
         self.get_adt()
+
+    def run(self):
         if self.adtTitle is not None:
             try:
                 self.addto_verwaltung()
@@ -83,8 +86,12 @@ class AdtMain():
             except Exception as inst:
                 pywikibot.output(u'ERROR: ' + str(type(inst)))
                 pywikibot.output(inst)
-            #self.add_template()
-            #self.cleanup_templates()
+            try:
+                self.add_template()
+            except Exception as inst:
+                pywikibot.output(u'ERROR: ' + str(type(inst)))
+                pywikibot.output(inst)
+            # self.cleanup_templates()
 
     def get_adt(self):
         title = adtPageTitle.format(dayName=self.dayName)
@@ -122,9 +129,10 @@ class AdtMain():
             talkpage.text += talkPageErrorNotFound.format(date=self.adtDate,
                                                           adt=self.adtTitle)
             comment = talkPageErrorComment.format(date=self.adtDate)
-            talkpage.save(comment=comment, botflag=False, minor=False)
+            if not self.dry:
+                talkpage.save(comment=comment, botflag=False, minor=False)
 
-    def __verwaltung(self, pageTitle):
+    def __verwaltung(self, pageTitle):  # NOQA
         page = pywikibot.Page(self.site, pageTitle)
         oldtext = page.text  # debug
         line_list = page.text.splitlines()
@@ -147,46 +155,64 @@ class AdtMain():
                             if len(r) == 1:
                                 self.adtErneut = False
                             found = True
-                            pywikibot.output(u'Verwaltung: AdT Datum war schon eingetragen' + pageTitle +\
-                                    u' eingetragen')
+                            pywikibot.output(u'Verwaltung: AdT Datum war schon'
+                                             u' in ' + pageTitle +
+                                             u' eingetragen')
                             break
-                        elif date + datedelta.relativedelta(years=2) > self.today:
+                        elif date + datedelta.relativedelta(years=2) > self.today:  # NOQA
                             talkpage = page.toggleTalkPage()
-                            pywikibot.output(talkPageErrorMsgTime.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
-                            if not talkPageHeading.format(date=self.adtDate) in talkpage.text:
-                                talkpage.text += talkPageErrorMsgTime.format(date=self.adtDate, line=text_line)
-                                comment = talkPageErrorComment.format(date=self.adtDate)
-                                talkpage.save(comment=comment, botflag=False, minor=False)
+                            pywikibot.output(talkPageErrorMsgTime
+                                             .format(date=self.adtDate,
+                                                     line=text_line,
+                                                     adt=self.adtTitle))
+                            if not talkPageHeading.format(date=self.adtDate) in talkpage.text: # NOQA
+                                talkpage.text += talkPageErrorMsgTime.format(
+                                    date=self.adtDate, line=text_line)
+                                comment = talkPageErrorComment.format(
+                                    date=self.adtDate)
+                                if not self.dry:
+                                    talkpage.save(comment=comment,
+                                                  botflag=False,
+                                                  minor=False)
                     if not found:
                         text_line = text_line.rsplit('</small>', 1)[0]
                         text_line += u' + ' + self.adtDate + u'</small> -'
                 else:
                     self.adtErneut = False
-                    text_line = text_line.rsplit(u']]', 1)[0] + u']] <small>' + self.adtDate +\
-                            u'</small> -'
+                    text_line = text_line.rsplit(u']]', 1)[0] + u']] <small>' +\
+                        self.adtDate + u'</small> -'
 
                 line_list[line_count] = text_line
             elif self.adtDate.strip() in text_line.strip():
                 talkpage = page.toggleTalkPage()
-                pywikibot.output(talkPageErrorMsgDay.format(date=self.adtDate, line=text_line, adt=self.adtTitle))
-                if not talkPageHeading.format(date=self.adtDate) in talkpage.text:
-                    talkpage.text += talkPageErrorMsgDay.format(date=self.adtDate, line=text_line, adt=self.adtTitle)
+                pywikibot.output(talkPageErrorMsgDay.format(date=self.adtDate,
+                                                            line=text_line,
+                                                            adt=self.adtTitle))
+                if not talkPageHeading.format(date=self.adtDate) in talkpage.text: # NOQA
+                    talkpage.text += talkPageErrorMsgDay.format(
+                        date=self.adtDate, line=text_line, adt=self.adtTitle)
                     comment = talkPageErrorComment.format(date=self.adtDate)
-                    talkpage.save(comment=comment, botflag=False, minor=False)
+                    if not self.dry:
+                        talkpage.save(comment=comment, botflag=False,
+                                      minor=False)
 
         if page.text != u'\n'.join(line_list):
             page.text = u'\n'.join(line_list)
             if self.adtErneut:
-                comment = editComment.format(adt=self.adtTitle,erneut=u' (erneut)')
+                comment = editComment.format(adt=self.adtTitle,
+                                             erneut=u' (erneut)')
             else:
-                comment = editComment.format(adt=self.adtTitle,erneut=u'')
-            pywikibot.showDiff(oldtext,page.text)  # debug
-            page.save(comment=comment, botflag=False, minor=True)
+                comment = editComment.format(adt=self.adtTitle,
+                                             erneut=u'')
+            pywikibot.showDiff(oldtext, page.text)  # debug
+            if not self.dry:
+                page.save(comment=comment, botflag=False, minor=True)
             return True
         elif found:
             return True
         else:
-            pywikibot.output(u'Verwaltung: AdT nicht in ' + pageTitle + u' gefunden.')
+            pywikibot.output(u'Verwaltung: AdT nicht in ' +
+                             pageTitle + u' gefunden.')
             return False
 
     def addto_chron(self):
@@ -199,55 +225,64 @@ class AdtMain():
             pywikibot.output(u'Chronologie: AdT wurde schon eingetragen.')
             return
 
-        r = re.search(r'\n===\s*' + self.monthName + r'\s*' +\
-                unicode(self.year) + r'\s*===\n', chronPage.text)
-        if not r: #neuer Monatsabschnitt erstellen?
+        r = re.search(r'\n===\s*' + self.monthName + r'\s*' +
+                      unicode(self.year) + r'\s*===\n', chronPage.text)
+        if not r:  # neuer Monatsabschnitt erstellen?
             pywikibot.output(u'Chronologie: erstelle neuen Monatsabschnitt')
             part = chronPage.text.split(u'===', 1)
             part[0] += u'=== ' + self.monthName + u' ' +\
-                    unicode(self.year) + u' '
+                unicode(self.year) + u' '
             part[1] = u'\n===' + part[1]
         else:
             part = chronPage.text.split(u'===\n', 1)
 
         text = part[0] + u'===\n* ' + self.adtDate +\
-                u' [[' + self.adtTitle + u']]'
+            u' [[' + self.adtTitle + u']]'
         if self.adtErneut:
             text += u' (erneut)'
-            comment = editComment.format(adt=self.adtTitle,erneut=u' (erneut)')
-        elif self.adtErneut == None:
-            pywiki.warning(u'Konnte nicht feststellen, ob der AdT schonmal'
-                    u'AdT war!')
+            comment = editComment.format(adt=self.adtTitle, erneut=u' (erneut)')
+        elif self.adtErneut is None:
+            pywikibot.warning(u'Konnte nicht feststellen, ob der AdT schonmal'
+                              u' AdT war!')
         else:
-            comment = editComment.format(adt=self.adtTitle,erneut=u'')
+            comment = editComment.format(adt=self.adtTitle, erneut=u'')
 
         text += u'\n' + part[1]
 
         chronPage.text = text
         pywikibot.showDiff(oldtext, text)  # debug
-        chronPage.save(comment=comment, botflag=False, minor=False)
+        if not self.dry:
+            chronPage.save(comment=comment, botflag=False, minor=False)
 
     def add_template(self):
+        if self.adtTitle:
+            return  # silently fail
+
         adtPage = pywikibot.Page(self.site, self.adtTitle, ns=1)
         code = mwparserfromhell.parse(adtPage.text)
 
         war_adt_added = False
         for template in code.filter_templates(recursive=False):
-            if template.name.matches("wird AdT"):
+            if template.name.matches("AdT-Vorschlag Hinweis"):
                 code.remove(template)
-                self.red.srem(redSetMain, self.adtTitle)
-                pywikibot.output(u'D:AdT: {{wird AdT}} gefunden, entfernt')
+                pywikibot.output(u'D:AdT: {{AdT-Vorschlag Hinweis}} gefunden,'
+                                 u'entfernt')
             if template.name.matches("war AdT"):
-                pywikibot.output(u'D:AdT: {{war AdT}} gefunden, füge heute hinzu')
-                template.add(str(len(template.params)+1), self.adtDate)
+                pywikibot.output(u'D:AdT: {{AdT-Vorschlag Hinweis}} gefunden,'
+                                 u' füge heute hinzu')
+                if self.snapDate not in template.params:
+                    template.add(str(len(template.params)+1), self.snapDate)
                 war_adt_added = True
-
+        text = unicode(code)
         if not war_adt_added:
-            template = u'{{war AdT|1=' + self.adtDate + u'}}\n'
-            adtPage.text = template + adtPage.text
+            template = u'{{war AdT|1=' + self.snapDate + u'}}\n'
+            text = template + text
 
-        print adtPage.text  # debug
-        #adtPage.save(comment=templateComment, botflag=False, minor=False)
+        print text  # debug
+
+        if adtPage.text != text:
+            pass
+        # adtPage.save(comment=templateComment, botflag=False, minor=False)
 
     def cleanup_templates(self):
         pywikibot.output(u'\nÜberpürfe redis set ' + unicode(redSetMain))
@@ -259,22 +294,24 @@ class AdtMain():
             page = pywikibot.Page(self.site, title, ns=1)
             code = mwparserfromhell.parse(page.text)
             for template in code.filter_templates(recursive=False):
-                if template.name.matches("wird AdT"):
+                if template.name.matches("AdT-Vorschlag Hinweis"):
                     param_tag = template.get(u'Tag').value
                     date = dateparser.parse(param_tag, dayfirst=True).date()
                     if date <= self.today:
                         code.remove(template)
-                        pywikibot.output(title + u': {{wird AdT}} gefunden,'
-                                u' entfernt')
+                        pywikibot.output(title + u': {{AdT-Vorschlag Hinweis}}'
+                                         u' gefunden, entfernt.')
                     else:
-                        pywikibot.output(title + u': {{wird AdT}} gefunden,'
-                                u' belassen da für ' + unicode(date))
+                        pywikibot.output(title + u': {{AdT-Vorschlag Hinweis}}'
+                                         u' gefunden, belassen da für ' +
+                                         unicode(date))
 
             if unicode(code) != page.text:
-                pass #page.save()
+                pass  # page.save()
 
 if __name__ == "__main__":
     try:
-        AdtMain()
+        runner = AdtMain()
+        runner.run()
     finally:
         pywikibot.stopme()

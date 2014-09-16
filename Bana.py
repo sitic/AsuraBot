@@ -7,9 +7,11 @@ import pywikibot
 import mwparserfromhell as mwparser
 import re
 import dateutil.parser as dateparser
+import dateutil.relativedelta as datedelta
 import datetime
 import locale
 import redis
+from Bali import AdtMain
 
 discPageTitle = u'Wikipedia Diskussion:Hauptseite/Artikel des Tages/Vorschläge'
 erledigtTemplate = (u'{{Erledigt|1=&nbsp;Gestriger AdT-Abschnitt, Baustein'
@@ -26,8 +28,10 @@ redisDB = 9
 rand_str = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x'  # openssl rand -base64 30
 
 
-class AdtMain():
+class AdT_Verwaltung():
     def __init__(self):
+        self.dry = True  # debug switch
+
         self.site = pywikibot.Site()
         self.site.login()
 
@@ -45,18 +49,39 @@ class AdtMain():
 
         # 31. Dezember 2013
         self.snapDate = self.today.strftime('%d. %B %Y').decode('utf-8')
+
+        self.props = []
+        self.erl_props = []
+        self.dates = []
+        self.sections = []
+
         pywikibot.output(u'\n\ninit complete: ' +
                          datetime.datetime.now()
                          .strftime('%d. %B %Y, %H:%M:%S').decode('utf-8'))
 
-        self.adt_disc()
+        main_adt = AdtMain()
+        try:
+            main_adt.add_template()
+        except Exception as inst:
+            pywikibot.error(u'ERROR: ' + str(type(inst)))
+            pywikibot.error(inst)
 
-    def adt_disc(self):  # NOQA
+        try:
+            self.adt_disc(True)
+        except Exception as inst:
+            pywikibot.error(u'ERROR: ' + str(type(inst)))
+            pywikibot.error(inst)
+        self.add_templates()
+        self.cleanup_templates()
+
+    def adt_disc(self, do_erles):  # NOQA
         discPage = pywikibot.Page(self.site, discPageTitle)
         section_count = 0
         line_count = -1
         header_line = None
+        sectionname = None
         modsections = []
+        date = self.today + datedelta.relativedelta(years=1000)
 
         line_list = discPage.text.splitlines(True)
         for text_line in line_list:
@@ -66,68 +91,75 @@ class AdtMain():
                 # check previous section for AdT and erle
                 if header_line is not None:
                     lines = line_list[header_line:line_count]
-                    adt = self.__find_adt(lines)
-                    if adt is not None:
-                        self.addto_redis(adt['title'])
-                    if not self.__erle_exists(lines):
-                        line_list[line_count-1] += erledigtTemplate
-                        modsections.append(sectionname) # NOQA
+                    # adt = self.__find_adt(lines)
+                    if date.date() <= self.today and section_count < 6:
+                        try:
+                            self.__cleanup(lines, sectionname, date)
+                        except Exception as inst:
+                            pywikibot.error(u'ERROR: ' + str(type(inst)))
+                            pywikibot.error(inst)
+
+                        if not self.__erle_exists(lines):
+                            line_list[line_count-1] += erledigtTemplate
+                            modsections.append(sectionname)
+                    else:
+                        self.check_template(lines, sectionname, date)
 
                 section_count += 1
                 sectionname = s.group('sectionname')
+                code = mwparser.parse(sectionname)
+                sectionname = code.strip_code(normalize=True, collapse=True)
+                header_line = line_count
 
-                pywikibot.output(u'WD:AdT: Abschnitt gefunden: ' + sectionname)
                 d = re.search(r'\d{1,2}\.\d{1,2}\.\d{2,4}\s?:', sectionname)
                 if d:
-                        date = dateparser.parse(d.group()[:-1], dayfirst=True)
-                        if date.date() <= self.today and section_count < 6:
-                                header_line = line_count
-                        else:
-                            break
+                    date = dateparser.parse(d.group()[:-1], dayfirst=True)
+                else:
+                    date = self.today + datedelta.relativedelta(years=1000)
 
         pywikibot.output(u'WD:AdT: Abschnitt(e) ' + unicode(modsections) +
                          u' als erledigt markiert')
         if len(modsections) == 1:
-            code = mwparser.parse(modsections[0])
-            lead_section = code.strip_code(normalize=True, collapse=True)
+            lead_section = modsections[0]
             comment = erledigtComment.format(section=lead_section, andere=u'')
         elif len(modsections) > 1:
             andere = u' sowie'
             for i in range(1, len(modsections)):
-                code = mwparser.parse(modsections[i])
-                section = code.strip_code(normalize=True, collapse=True)
+                section = modsections[i]
                 if i > 1:
                     andere += u','
                 andere += u' [[#' + unicode(section) + ']]'
 
-            code = mwparser.parse(modsections[0])
-            lead_section = code.strip_code(normalize=True, collapse=True)
+            lead_section = modsections[0]
             comment = erledigtComment.format(section=lead_section,
                                              andere=andere)
 
         if len(modsections) != 0:
             discPage.text = u''.join(line_list)
-            discPage.save(comment=comment, botflag=True, minor=True)
+            if not self.dry:
+                discPage.save(comment=comment, botflag=True, minor=True)
 
-    def __find_adt(self, lines):
+    def __find_adt(self, line_list):
+        lines = u''.join(line_list)
         code = mwparser.parse(lines)
 
-        for template in code.filter_templates():
+        for template in code.filter_templates(recursive=False):
             if template.name.matches((u'AdT-Vorschlag', u'AdT-Vorschlag\n')):
                 l = re.search(r'\s*(?P<adt>.*)\s*\n?',
                               unicode(template.get(u'LEMMA').value))
                 d = re.search(r'\d{1,2}\.\d{1,2}\.\d{2,4}',
                               unicode(template.get(u'DATUM').value))
+                date = None
+                adtTitle = None
                 if d:
-                    date = dateparser.parse(d.group(), dayfirst=True).date()
+                    date = dateparser.parse(d.group(), dayfirst=True).date()  #NOQA
                 if l:
                     adtTitle = l.group('adt').strip()
-                    pywikibot.output(u'Heutiger AdT: ' + self.adtTitle)
+                    pywikibot.output(u'AdT Vorschlag: ' + adtTitle)
                 else:
                     pywikibot.error(u'Konnte AdT nicht finden in Abschnitt: ' +
                                     lines)
-                    adtTitle = None
-                    return dict(title=adtTitle, date=date)
+                return adtTitle
 
     def __erle_exists(self, line_list):
         code = mwparser.parse(u''.join(line_list))
@@ -136,13 +168,80 @@ class AdtMain():
                 return True
         return False
 
-    def addto_redis(self, title):
-        self.red.sadd(rand_str, title)
-        pywikibot.output(u"Added " + title + u" to redis set " +
-                         rand_str.decode('utf8') + u'\n')
+    def __cleanup(self, lines, sectionname, date):
+        adt = self.__find_adt(lines)
+        if adt is not None:
+            self.erl_props.append(adt)
+
+    def cleanup_templates(self):
+        for adt in self.erl_props:
+            if adt in self.props:
+                continue
+            page = pywikibot.Page(self.site, adt, ns=1)
+            oldtext = page.text
+            code = mwparser.parse(page.text)
+
+            for template in code.filter_templates(recursive=False):
+                if template.name.matches("AdT-Vorschlag Hinweis"):
+                    code.remove(template)
+                    pywikibot.output(adt +
+                                     u' : {{AdT-Vorschlag Hinweis}} '
+                                     u'gefunden, entfernt')
+            page.text = unicode(code)
+            pywikibot.showDiff(oldtext, page.text)
+            # save
+
+    def check_template(self, lines, sectionname, date):
+        if date == self.today + datedelta.relativedelta(years=1000):
+            date = None
+        adt = self.__find_adt(lines)
+
+        if adt is not None:
+            self.dates.append(date)
+            self.props.append(adt)
+            self.sections.append(sectionname)
+
+    def add_templates(self):
+        for adt, section, date in zip(self.props, self.sections, self.dates):
+            page = pywikibot.Page(self.site, adt, ns=1)
+            oldtext = page.text
+            code = mwparser.parse(page.text)
+
+            found = False
+            for template in code.filter_templates(recursive=False):
+                if template.name.matches("AdT-Vorschlag Hinweis"):
+                    found = True
+                    if not template.has(u'Abschnitt'):
+                        template.add(u'Abschnitt', section)
+                    if template.has(u'Datum'):
+                        if dateparser.parse(template.get(u'Datum').value,
+                                            dayfirst=True) <= date:
+                            continue
+                        else:
+                            template.get(u'Datum').value = self.__format_date(
+                                date)
+                            template.get(u'Abschnitt').value = section
+
+            page.text = unicode(code)
+            if not found:
+                page.text = (u'{{AdT-Vorschlag Hinweis' +
+                             self.__format_tempdate(date) +
+                             u' | Abschnitt = ' + section + u'}}\n' +
+                             page.text)
+            pywikibot.showDiff(oldtext, page.text)
+            # save
+
+    def __format_date(self, date):
+        return date.strftime('%d.%m.%Y').decode('utf-8')
+
+    def __format_tempdate(self, date):
+        if date is not None:
+            return u'| Datum = ' + self.__format_date(date)
+        else:
+            return u''
 
 if __name__ == "__main__":
     try:
-        AdtMain()
+        AdT_Verwaltung()
     finally:
         pywikibot.stopme()
