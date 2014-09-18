@@ -65,9 +65,6 @@ class AdtMain():
 
         # 31. Dezember 2013
         self.snapDate = self.today.strftime('%d. %B %Y').decode('utf-8')
-        pywikibot.output(u'\n\ninit complete: ' +
-                         (datetime.datetime.now()
-                          .strftime('%d. %B %Y, %H:%M:%S')).decode('utf-8'))
 
         self.adtErneut = None
         self.adtTitle = None
@@ -75,6 +72,10 @@ class AdtMain():
         self.get_adt()
 
     def run(self):
+        pywikibot.output(u'\n\ninit complete: ' +
+                         (datetime.datetime.now()
+                          .strftime('%d. %B %Y, %H:%M:%S')).decode('utf-8'))
+
         if self.adtTitle is not None:
             try:
                 self.addto_verwaltung()

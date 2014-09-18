@@ -30,7 +30,7 @@ rand_str = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x'  # openssl rand -base64 30
 
 class AdT_Verwaltung():
     def __init__(self):
-        self.dry = True  # debug switch
+        self.dry = False  # debug switch
 
         self.site = pywikibot.Site()
         self.site.login()
