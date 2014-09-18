@@ -11,6 +11,7 @@ import dateutil.relativedelta as datedelta
 import datetime
 import locale
 import redis
+import sys
 from Bali import AdtMain
 
 discPageTitle = u'Wikipedia Diskussion:Hauptseite/Artikel des Tages/Vorschläge'
@@ -29,8 +30,9 @@ rand_str = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x'  # openssl rand -base64 30
 
 
 class AdT_Verwaltung():
-    def __init__(self):
+    def __init__(self, do_hinweis):
         self.dry = False  # debug switch
+        self.do_hinweis = do_hinweis
 
         self.site = pywikibot.Site()
         self.site.login()
@@ -48,7 +50,7 @@ class AdT_Verwaltung():
         self.adtDate = self.today.strftime('%d.%m.%Y').decode('utf-8')
 
         # 31. Dezember 2013
-        self.snapDate = self.today.strftime('%d. %B %Y').decode('utf-8')
+        self.snapDate = self.__format_date(self.today)
 
         self.props = []
         self.erl_props = []
@@ -67,14 +69,21 @@ class AdT_Verwaltung():
             pywikibot.error(inst)
 
         try:
-            self.adt_disc(True)
+            self.adt_disc()
         except Exception as inst:
             pywikibot.error(u'ERROR: ' + str(type(inst)))
             pywikibot.error(inst)
-        self.add_templates()
-        self.cleanup_templates()
 
-    def adt_disc(self, do_erles):  # NOQA
+        try:
+            if self.do_hinweis:
+                self.add_templates()
+            else:
+                self.cleanup_templates()
+        except Exception as inst:
+            pywikibot.error(u'ERROR: ' + str(type(inst)))
+            pywikibot.error(inst)
+
+    def adt_disc(self):  # NOQA
         discPage = pywikibot.Page(self.site, discPageTitle)
         section_count = 0
         line_count = -1
@@ -116,6 +125,9 @@ class AdT_Verwaltung():
                     date = dateparser.parse(d.group()[:-1], dayfirst=True)
                 else:
                     date = self.today + datedelta.relativedelta(years=1000)
+
+        if self.do_hinweis:
+            return
 
         pywikibot.output(u'WD:AdT: Abschnitt(e) ' + unicode(modsections) +
                          u' als erledigt markiert')
@@ -232,7 +244,7 @@ class AdT_Verwaltung():
             # save
 
     def __format_date(self, date):
-        return date.strftime('%d.%m.%Y').decode('utf-8')
+        return date.strftime('%-d. %B %Y').decode('utf-8')
 
     def __format_tempdate(self, date):
         if date is not None:
@@ -242,6 +254,9 @@ class AdT_Verwaltung():
 
 if __name__ == "__main__":
     try:
-        AdT_Verwaltung()
+        if len(sys.argv) < 2:
+            AdT_Verwaltung(False)
+        else:
+            AdT_Verwaltung(True)
     finally:
         pywikibot.stopme()

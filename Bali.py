@@ -60,11 +60,11 @@ class AdtMain():
         self.monthName = self.today.strftime('%B').decode('utf-8')
         self.year = self.today.year
 
-        # 31.12.2013
+        # 1.12.2013
         self.adtDate = self.today.strftime('%d.%m.%Y').decode('utf-8')
 
-        # 31. Dezember 2013
-        self.snapDate = self.today.strftime('%d. %B %Y').decode('utf-8')
+        # 1. Dezember 2013
+        self.snapDate = self.today.strftime('%-d. %B %Y').decode('utf-8')
 
         self.adtErneut = None
         self.adtTitle = None
@@ -283,7 +283,7 @@ class AdtMain():
 
         if adtPage.text != text:
             pass
-        # adtPage.save(comment=templateComment, botflag=False, minor=False)
+        # adtPage.save(comment=templateComment, botflag=True, minor=True)
 
     def cleanup_templates(self):
         pywikibot.output(u'\nÜberpürfe redis set ' + unicode(redSetMain))
