@@ -22,7 +22,7 @@ redSetMain = 'bceL8omhRhUIkx4KhGWPC6TLmq5IixQD7o5BId3x'
 adtPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/{dayName}'
 chronPageTitle = u'Wikipedia:Hauptseite/Artikel des Tages/Chronologie {year}'
 editComment = u'Bot: heutiger AdT: [[{adt}]]{erneut}'
-templateComment = u'Bot: dieser Artikel ist heute Artikel des Tages'
+templateComment = u'Bot: dieser Artikel ist heute [[WP:AdT|Artikel des Tages]]'
 verwaltungTitle1 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung'
 verwaltungTitle2 = u'Wikipedia:Hauptseite/Artikel des Tages/Verwaltung/Lesenswerte Artikel' # NOQA
 
@@ -47,7 +47,7 @@ talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des '
 
 class AdtMain():
     def __init__(self):
-        self.dry = False  # debug
+        self.dry = True  # debug
         self.site = pywikibot.Site()
         self.site.login()
 
@@ -277,13 +277,24 @@ class AdtMain():
         text = unicode(code)
         if not war_adt_added:
             template = u'{{war AdT|1=' + self.snapDate + u'}}\n'
-            text = template + text
-
-        print text  # debug
+            text = self.__add_templ(text, template)
 
         if adtPage.text != text:
-            pass
-        # adtPage.save(comment=templateComment, botflag=True, minor=True)
+            pywikibot.showDiff(adtPage.text, text)  # debug
+            adtPage.text = text
+            if not self.dry:
+                adtPage.save(comment=templateComment, botflag=True, minor=True)
+
+    def __add_templ(self, text, template):
+        tmpl1 = u'{{Holocaustleugnung}}'
+        tmpl2 = u'{{Vorlage:Holocaustleugnung}}'
+        if text.startswith(tmpl1):
+            text = tmpl1 + u'\n' + template[:-1] + text[len(tmpl1):]
+        elif text.startswith(tmpl2):
+            text = tmpl1 + u'\n' + template[:-1] + text[len(tmpl2):]
+        else:
+            text = (template + text)
+        return text
 
     def cleanup_templates(self):
         pywikibot.output(u'\nÜberpürfe redis set ' + unicode(redSetMain))
