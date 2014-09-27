@@ -47,7 +47,7 @@ talkPageErrorComment = (u'neu /* Fehler beim automatischen Eintragen des '
 
 class AdtMain():
     def __init__(self):
-        self.dry = True  # debug
+        self.dry = False  # debug
         self.site = pywikibot.Site()
         self.site.login()
 
@@ -77,6 +77,7 @@ class AdtMain():
                           .strftime('%d. %B %Y, %H:%M:%S')).decode('utf-8'))
 
         if self.adtTitle is not None:
+            pywikibot.output(u'Heutiger AdT: ' + self.adtTitle)
             try:
                 self.addto_verwaltung()
             except Exception as inst:
@@ -94,8 +95,21 @@ class AdtMain():
                 pywikibot.output(inst)
             # self.cleanup_templates()
 
-    def get_adt(self):
-        title = adtPageTitle.format(dayName=self.dayName)
+            # Purge yesterdays AdT disc page
+            yesterday = self.today - datedelta.relativedelta(days=1)
+            self.get_adt(yesterday)
+            if self.adtTitle is not None:
+                pywikibot.output(u'Purge Disc. von ' + self.adtTitle)
+                page = pywikibot.Page(self.site, self.adtTitle, ns=1)
+                page.purge()
+        else:
+            pywikibot.error(u'Konnte heutigen AdT nicht finden!')
+
+    def get_adt(self, date=None):
+        if date is None:
+            date = self.today
+        dayName = date.strftime('%A').decode('utf-8')
+        title = adtPageTitle.format(dayName=dayName)
         adtPage = pywikibot.Page(self.site, title)
         code = mwparserfromhell.parse(adtPage.text)
 
@@ -106,11 +120,9 @@ class AdtMain():
                 d = re.search(r'\d{1,2}\.\d{1,2}\.\d{2,4}',
                               unicode(template.get(u'DATUM').value))
                 if l and dateparser.parse(d.group(),
-                                          dayfirst=True).date() == self.today:
+                                          dayfirst=True).date() == date:
                     self.adtTitle = l.group('adt').strip()
-                    pywikibot.output(u'Heutiger AdT: ' + self.adtTitle)
                 else:
-                    pywikibot.error(u'Konnte heutigen AdT nicht finden!')
                     self.adtTitle = None
                 return
 
@@ -256,7 +268,7 @@ class AdtMain():
             chronPage.save(comment=comment, botflag=False, minor=False)
 
     def add_template(self):
-        if self.adtTitle:
+        if not self.adtTitle:
             return  # silently fail
 
         adtPage = pywikibot.Page(self.site, self.adtTitle, ns=1)
@@ -268,15 +280,15 @@ class AdtMain():
                 code.remove(template)
                 pywikibot.output(u'D:AdT: {{AdT-Vorschlag Hinweis}} gefunden,'
                                  u'entfernt')
-            if template.name.matches("war AdT"):
-                pywikibot.output(u'D:AdT: {{AdT-Vorschlag Hinweis}} gefunden,'
-                                 u' füge heute hinzu')
-                if self.snapDate not in template.params:
+            if template.name.matches("War AdT"):
+                if not any(self.snapDate in p for p in template.params):
                     template.add(str(len(template.params)+1), self.snapDate)
+                    pywikibot.output(u'D:AdT: {{War AdT}} '
+                                     u'gefunden, füge heute hinzu')
                 war_adt_added = True
         text = unicode(code)
         if not war_adt_added:
-            template = u'{{war AdT|1=' + self.snapDate + u'}}\n'
+            template = u'{{War AdT|1=' + self.snapDate + u'}}\n'
             text = self.__add_templ(text, template)
 
         if adtPage.text != text:
