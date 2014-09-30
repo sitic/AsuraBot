@@ -127,6 +127,7 @@ class AdT_Verwaltung():
                     date = self.today + datedelta.relativedelta(years=1000)
 
         if self.do_hinweis:
+            # don't do erle
             return
 
         pywikibot.output(u'WD:AdT: Abschnitt(e) ' + unicode(modsections) +
@@ -185,24 +186,6 @@ class AdT_Verwaltung():
         if adt is not None:
             self.erl_props.append(adt)
 
-    def cleanup_templates(self):
-        for adt in self.erl_props:
-            if adt in self.props:
-                continue
-            page = pywikibot.Page(self.site, adt, ns=1)
-            oldtext = page.text
-            code = mwparser.parse(page.text)
-
-            for template in code.filter_templates(recursive=False):
-                if template.name.matches("AdT-Vorschlag Hinweis"):
-                    code.remove(template)
-                    pywikibot.output(adt +
-                                     u' : {{AdT-Vorschlag Hinweis}} '
-                                     u'gefunden, entfernt')
-            page.text = unicode(code)
-            pywikibot.showDiff(oldtext, page.text)
-            # save
-
     def check_template(self, lines, sectionname, date):
         if date == self.today + datedelta.relativedelta(years=1000):
             date = None
@@ -213,9 +196,50 @@ class AdT_Verwaltung():
             self.props.append(adt)
             self.sections.append(sectionname)
 
-    def add_templates(self):
-        for adt, section, date in zip(self.props, self.sections, self.dates):
+    def cleanup_templates(self):
+        for adt in self.erl_props:
+            if adt in self.props:
+                # mehrmals für AdT vorgeschlagen
+                continue
+
             page = pywikibot.Page(self.site, adt, ns=1)
+
+            if not page.exists():
+                pywikibot.error(u'ERROR: disc for AdT-Vorschlag ' + adt
+                                + u' does not exist!')
+                return
+
+            oldtext = page.text
+            code = mwparser.parse(page.text)
+
+            for template in code.filter_templates(recursive=False):
+                if template.name.matches("AdT-Vorschlag Hinweis"):
+                    code.remove(template)
+                    pywikibot.output(adt +
+                                     u' : {{AdT-Vorschlag Hinweis}} '
+                                     u'gefunden, entfernt')
+            page.text = unicode(code)
+            if page.text == oldtext:
+                continue
+
+            pywikibot.showDiff(oldtext, page.text)
+            comment = u'Bot: [[Vorlage:AdT-Vorschlag Hinweis]] entfernt'
+            if not self.dry:
+                page.save(comment=comment, botflag=True, minor=True)
+
+    def add_templates(self):  # NOQA
+        for adt, section, date in zip(self.props, self.sections, self.dates):
+            blacklist = [u'Laura (Film)',
+                         u'Tsatsiki – Tintenfische und erste Küsse',
+                         u'Bette Davis']
+            if adt in blacklist:  # @TODO
+                continue
+            page = pywikibot.Page(self.site, adt, ns=1)
+            if not page.exists():
+                pywikibot.error(u'ERROR: disc for AdT-Vorschlag ' + adt
+                                + u' does not exist!')
+                return
+
             oldtext = page.text
             code = mwparser.parse(page.text)
 
@@ -240,8 +264,14 @@ class AdT_Verwaltung():
                              self.__format_tempdate(date) +
                              u' | Abschnitt = ' + section + u'}}\n' +
                              page.text)
+
+            comment = (u'Bot: Dieser Artikel wurde zum ' +
+                       self.__format_date(date) +
+                       u' als Artikel des Tages vorgeschlagen ([[WD:AdT#' +
+                       section + u'|Diskussion]])')
             pywikibot.showDiff(oldtext, page.text)
-            # save
+            if not self.dry:
+                page.save(comment=comment, botflag=False, minor=False)
 
     def __format_date(self, date):
         return date.strftime('%-d. %B %Y').decode('utf-8')
