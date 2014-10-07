@@ -288,6 +288,7 @@ class AdtMain():
                 war_adt_added = True
         text = unicode(code)
         if not war_adt_added:
+            text = text.lstrip(u'\n')
             template = u'{{War AdT|1=' + self.snapDate + u'}}\n'
             text = self.__add_templ(text, template)
 

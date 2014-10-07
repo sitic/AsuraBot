@@ -222,6 +222,7 @@ class AdT_Verwaltung():
             if page.text == oldtext:
                 continue
 
+            page.text = page.text.lstrip(u'\n')
             pywikibot.showDiff(oldtext, page.text)
             comment = u'Bot: [[Vorlage:AdT-Vorschlag Hinweis]] entfernt'
             if not self.dry:
@@ -250,7 +251,8 @@ class AdT_Verwaltung():
                     if not template.has(u'Abschnitt'):
                         template.add(u'Abschnitt', section)
                     if template.has(u'Datum'):
-                        if dateparser.parse(template.get(u'Datum').value,
+                        tdate = self.__date_parser(template.get(u'Datum').value)
+                        if dateparser.parse(tdate,
                                             dayfirst=True) <= date:
                             continue
                         else:
@@ -264,6 +266,9 @@ class AdT_Verwaltung():
                              self.__format_tempdate(date) +
                              u' | Abschnitt = ' + section + u'}}\n' +
                              page.text)
+
+            if page.text == oldtext:
+                continue
 
             comment = (u'Bot: Dieser Artikel wurde zum ' +
                        self.__format_date(date) +
@@ -281,6 +286,23 @@ class AdT_Verwaltung():
             return u'| Datum = ' + self.__format_date(date)
         else:
             return u''
+
+    def __date_parser(self, date):
+        date = unicode(date)
+        dictionary = {
+            u'Januar': 'January',
+            u'Februar': 'February',
+            u'März': 'March',
+            u'Mai': 'May',
+            u'Juni': 'June',
+            u'Juli': 'July',
+            u'Oktober': 'October',
+            u'Dezember': 'December'
+            }
+
+        for lang, en in dictionary.items():
+            date = date.replace(lang, en)
+        return date
 
 if __name__ == "__main__":
     try:
