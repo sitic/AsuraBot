@@ -216,7 +216,7 @@ class AdT_Verwaltung():
                 if template.name.matches("AdT-Vorschlag Hinweis"):
                     code.remove(template)
                     pywikibot.output(adt +
-                                     u' : {{AdT-Vorschlag Hinweis}} '
+                                     u': {{AdT-Vorschlag Hinweis}} '
                                      u'gefunden, entfernt')
             page.text = unicode(code)
             if page.text == oldtext:
@@ -270,9 +270,9 @@ class AdT_Verwaltung():
             if page.text == oldtext:
                 continue
 
-            comment = (u'Bot: Dieser Artikel wurde zum ' +
+            comment = (u'Bot: Dieser Artikel wurde für den ' +
                        self.__format_date(date) +
-                       u' als Artikel des Tages vorgeschlagen ([[WD:AdT#' +
+                       u' zum Artikel des Tages vorgeschlagen ([[WD:AdT#' +
                        section + u'|Diskussion]])')
             pywikibot.showDiff(oldtext, page.text)
             if not self.dry:
