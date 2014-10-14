@@ -230,11 +230,6 @@ class AdT_Verwaltung():
 
     def add_templates(self):  # NOQA
         for adt, section, date in zip(self.props, self.sections, self.dates):
-            blacklist = [u'Laura (Film)',
-                         u'Tsatsiki – Tintenfische und erste Küsse',
-                         u'Bette Davis']
-            if adt in blacklist:  # @TODO
-                continue
             page = pywikibot.Page(self.site, adt, ns=1)
             if not page.exists():
                 pywikibot.error(u'ERROR: disc for AdT-Vorschlag ' + adt
@@ -252,8 +247,7 @@ class AdT_Verwaltung():
                         template.add(u'Abschnitt', section)
                     if template.has(u'Datum'):
                         tdate = self.__date_parser(template.get(u'Datum').value)
-                        if dateparser.parse(tdate,
-                                            dayfirst=True) <= date:
+                        if dateparser.parse(tdate, dayfirst=True) <= date:
                             continue
                         else:
                             template.get(u'Datum').value = self.__format_date(
