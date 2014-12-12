@@ -292,7 +292,7 @@ class IrcListener(irc.bot.SingleServerIRCBot):
     self.start()
 
   def on_nicknameinuse(self, c, e):
-    c.nick(c.get_nickname() + "_wtf")
+    c.nick(c.get_nickname() + "_RC")
 
   def on_welcome(self, c, e):
     pywikibot.output("\03{lightred}Connected to IRC!\03{default}\n")

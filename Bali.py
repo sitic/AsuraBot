@@ -126,7 +126,18 @@ class AdtMain():
                     self.adtTitle = None
                 return
 
+    def check_erneut(self):
+        adtPage = pywikibot.Page(self.site, self.adtTitle, ns=1)
+        code = mwparserfromhell.parse(adtPage.text)
+
+        self.adtErneut = False
+        for template in code.filter_templates(recursive=False):
+            if template.name.matches("War AdT"):
+                if any(self.snapDate not in p for p in template.params):
+                    self.adtErneut = True
+
     def addto_verwaltung(self):
+        self.check_erneut()
         found = self.__verwaltung(verwaltungTitle1)
         if not found:
             found = self.__verwaltung(verwaltungTitle2)
@@ -161,12 +172,9 @@ class AdtMain():
 
                 r = re.findall(r'\d{1,2}\.\d{1,2}\.\d{2,4}', text_line)
                 if r:
-                    self.adtErneut = True
                     for r_date in r:
                         date = dateparser.parse(r_date, dayfirst=True).date()
                         if date == self.today:
-                            if len(r) == 1:
-                                self.adtErneut = False
                             found = True
                             pywikibot.output(u'Verwaltung: AdT Datum war schon'
                                              u' in ' + pageTitle +
@@ -191,7 +199,6 @@ class AdtMain():
                         text_line = text_line.rsplit('</small>', 1)[0]
                         text_line += u' + ' + self.adtDate + u'</small> -'
                 else:
-                    self.adtErneut = False
                     text_line = text_line.rsplit(u']]', 1)[0] + u']] <small>' +\
                         self.adtDate + u'</small> -'
 
@@ -239,7 +246,7 @@ class AdtMain():
             return
 
         r = re.search(r'\n===\s*' + self.monthName + r'\s*' +
-                      unicode(self.year) + r'\s*===\n', chronPage.text)
+                      unicode(self.year) + r'\s*===\s*\n', chronPage.text)
         if not r:  # neuer Monatsabschnitt erstellen?
             pywikibot.output(u'Chronologie: erstelle neuen Monatsabschnitt')
             part = chronPage.text.split(u'===', 1)
@@ -254,9 +261,6 @@ class AdtMain():
         if self.adtErneut:
             text += u' (erneut)'
             comment = editComment.format(adt=self.adtTitle, erneut=u' (erneut)')
-        elif self.adtErneut is None:
-            pywikibot.warning(u'Konnte nicht feststellen, ob der AdT schonmal'
-                              u' AdT war!')
         else:
             comment = editComment.format(adt=self.adtTitle, erneut=u'')
 
@@ -287,8 +291,8 @@ class AdtMain():
                                      u'gefunden, füge heute hinzu')
                 war_adt_added = True
         text = unicode(code)
+        text = text.lstrip(u'\n')
         if not war_adt_added:
-            text = text.lstrip(u'\n')
             template = u'{{War AdT|1=' + self.snapDate + u'}}\n'
             text = self.__add_templ(text, template)
 
